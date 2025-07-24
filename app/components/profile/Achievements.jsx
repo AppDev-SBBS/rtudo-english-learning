@@ -32,16 +32,40 @@ export default function Achievements() {
   }, [user]);
 
   return (
-    <div className="bg-gray-100 p-4 rounded-xl">
-      <p className="font-bold text-[var(--color-primary)] mb-4">🏆 Achievements</p>
+    <div
+      className="p-4 rounded-xl transition-colors duration-300"
+      style={{ backgroundColor: 'var(--card-background)' }}
+    >
+      <p
+        className="font-bold mb-4"
+        style={{ color: 'var(--color-primary)' }}
+      >
+        🏆 Achievements
+      </p>
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white p-3 rounded-xl text-center shadow-sm">
+        <div
+          className="p-3 rounded-xl text-center shadow-sm transition-colors duration-300"
+          style={{
+            backgroundColor: 'var(--accent)',
+            color: 'var(--text-color)',
+          }}
+        >
           <p className="font-semibold">🔥 7 Day Streak</p>
-          <p className="text-xs text-gray-600">{Math.min(streak, 7)}/7</p>
+          <p style={{ color: 'var(--muted-text)', fontSize: '12px' }}>
+            {Math.min(streak, 7)}/7
+          </p>
         </div>
-        <div className="bg-white p-3 rounded-xl text-center shadow-sm">
+        <div
+          className="p-3 rounded-xl text-center shadow-sm transition-colors duration-300"
+          style={{
+            backgroundColor: 'var(--accent)',
+            color: 'var(--text-color)',
+          }}
+        >
           <p className="font-semibold">📘 Quick Learner</p>
-          <p className="text-xs text-gray-600">{Math.min(completedLessons, 10)}/10</p>
+          <p style={{ color: 'var(--muted-text)', fontSize: '12px' }}>
+            {Math.min(completedLessons, 10)}/10
+          </p>
         </div>
       </div>
     </div>

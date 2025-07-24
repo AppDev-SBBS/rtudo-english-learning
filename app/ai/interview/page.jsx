@@ -17,9 +17,8 @@ export default function InterviewPage() {
     (window.SpeechRecognition || window.webkitSpeechRecognition);
   const recognition = SpeechRecognition ? new SpeechRecognition() : null;
 
-  // Greet once on mount
   useEffect(() => {
-    const greet = () => {
+    const timeout = setTimeout(() => {
       if (!hasGreetedRef.current) {
         hasGreetedRef.current = true;
         const introText = `Hello, I am your interview assistant. What would you like to practice?\n1. Job Interview\n2. Academic Interview\n3. General Interview`;
@@ -31,17 +30,18 @@ export default function InterviewPage() {
         setMessages([aiMessage]);
         speakText(introText);
       }
-    };
+    }, 1000);
 
-    greet();
+    return () => {
+      clearTimeout(timeout);
+      speechSynthesis.cancel();
+    };
   }, []);
 
-  // Auto scroll to bottom when messages change
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Set up mic recognition
   useEffect(() => {
     if (!recognition) return;
 
@@ -122,56 +122,97 @@ export default function InterviewPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white text-gray-800 font-sans flex flex-col items-center relative">
+    <div
+      className="min-h-screen font-sans flex flex-col items-center relative transition-colors duration-300"
+      style={{
+        backgroundColor: "var(--background)",
+        color: "var(--text-color)",
+      }}
+    >
       {/* Header */}
-      <div className="fixed top-0 left-0 w-full bg-white z-10 border-b shadow-sm">
+      <div
+        className="fixed top-0 left-0 w-full z-10 border-b shadow-lg"
+        style={{
+          backgroundColor: "var(--card-background)",
+          borderBottomColor: "var(--card-border)",
+        }}
+      >
         <div className="px-4 py-4 max-w-3xl mx-auto flex items-center justify-between">
-          <button onClick={() => router.back()}>
+          <button
+            onClick={() => router.back()}
+            className="transition-colors hover:opacity-70"
+            style={{ color: "var(--text-color)" }}
+          >
             <MdArrowBack size={24} />
           </button>
-          <h1 className="font-semibold text-lg">Interview Mode</h1>
+          <h1 className="font-semibold text-lg" style={{ color: "var(--text-color)" }}>
+            Interview Mode
+          </h1>
           <div className="flex items-center gap-2">
-            <div className="flex items-center px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+            <div className="flex items-center px-2 py-1 rounded-full text-sm font-medium"
+              style={{
+                backgroundColor: "var(--color-primary)",
+                color: "white",
+              }}
+            >
               <FaStar className="mr-1" /> 1738 XP
             </div>
-            <MdAccessTime size={22} />
+            <MdAccessTime size={22} style={{ color: "var(--text-color)" }} />
           </div>
         </div>
       </div>
 
-      {/* AI Intro Section */}
+      {/* Intro Box */}
       <div className="pt-28 px-4 w-full max-w-3xl">
         {messages.length > 0 && (
-          <div className="w-full text-center rounded-3xl py-16 px-6 bg-gradient-to-b from-[#e8cce2] to-white">
-            <h2 className="text-xl font-semibold text-gray-900 mb-3 whitespace-pre-line">
+          <div
+            className="w-full text-center rounded-3xl py-16 px-6 border"
+            style={{
+              background: "var(--accent)",
+              borderColor: "var(--card-border)",
+              color: "var(--text-color)",
+            }}
+          >
+            <h2 className="text-xl font-semibold mb-3 whitespace-pre-line">
               Hello, How can I help you?
             </h2>
-            <p className="text-sm text-gray-600">
+            <p
+              className="text-sm"
+              style={{ color: "var(--muted-text)" }}
+            >
               Tap the microphone to answer
             </p>
           </div>
         )}
       </div>
 
-      {/* Conversation Messages */}
+      {/* Messages */}
       <div className="w-full max-w-3xl flex-1 overflow-y-auto px-4 py-4 space-y-4">
         {messages.slice(1).map((msg, idx) => (
           <div
             key={idx}
-            className={`flex flex-col ${
-              msg.role === "user" ? "items-end" : "items-start"
-            }`}
+            className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
           >
             <div
-              className={`max-w-[75%] px-4 py-3 rounded-2xl text-sm shadow ${
-                msg.role === "user"
-                  ? "bg-[var(--color-primary)] text-white rounded-br-none"
-                  : "bg-[#f1f5f9] text-gray-900 rounded-bl-none"
-              }`}
+              className="max-w-[75%] px-4 py-3 rounded-2xl text-sm shadow-lg"
+              style={{
+                backgroundColor:
+                  msg.role === "user" ? "var(--color-primary)" : "var(--card-background)",
+                color: msg.role === "user" ? "#ffffff" : "var(--text-color)",
+                border:
+                  msg.role === "assistant" ? "1px solid var(--card-border)" : "none",
+                borderRadius:
+                  msg.role === "user" ? "1rem 1rem 0.25rem 1rem" : "1rem 1rem 1rem 0.25rem",
+              }}
             >
               {msg.text}
             </div>
-            <span className="text-xs text-gray-500 mt-1">{msg.timestamp}</span>
+            <span
+              className="text-xs mt-1"
+              style={{ color: "var(--muted-text)" }}
+            >
+              {msg.timestamp}
+            </span>
           </div>
         ))}
         <div ref={bottomRef} />
@@ -181,11 +222,21 @@ export default function InterviewPage() {
       <div className="mt-6 mb-8">
         <button
           onClick={handleMicClick}
-          className={`w-20 h-20 rounded-full shadow-2xl border-4 border-white flex items-center justify-center ${
-            listening ? "bg-red-500" : "bg-purple-100"
+          className={`w-20 h-20 rounded-full shadow-2xl border-4 flex items-center justify-center transition-all duration-200 ${
+            listening ? "bg-red-500 border-red-400" : ""
           }`}
+          style={{
+            backgroundColor: listening ? "red" : "var(--card-background)",
+            borderColor: listening ? "rgb(239 68 68)" : "var(--card-border)",
+          }}
         >
-          <FaMicrophone size={28} className="text-[var(--color-primary)]" />
+          <FaMicrophone
+            size={28}
+            className={listening ? "text-white" : ""}
+            style={{
+              color: listening ? "white" : "var(--color-primary)",
+            }}
+          />
         </button>
       </div>
     </div>

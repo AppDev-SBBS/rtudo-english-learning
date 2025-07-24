@@ -5,6 +5,28 @@
   --foreground: #171717;
   --color-primary: #6D2C57;
   --text-color: #000000;
+  
+  /* Card and component colors */
+  --card-background: #ffffff;
+  --card-border: #e5e7eb;
+  --secondary-background: #f8fafc;
+  --muted-text: #6b7280;
+  --accent: #f3f4f6;
+}
+
+/* Dark mode variables */
+.dark {
+  --background: #232323;
+  --foreground: #ededed;
+  --color-primary: #9D5C87;
+  --text-color: #ffffff;
+  
+  /* Card and component colors for dark mode */
+  --card-background: #2a2a2a;
+  --card-border: #404040;
+  --secondary-background: #1a1a1a;
+  --muted-text: #a1a1aa;
+  --accent: #333333;
 }
 
 @theme inline {
@@ -16,10 +38,12 @@
 
 html,
 body {
+  background-color: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
   margin: 0;
   padding: 0;
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 /* Hide scrollbar */
@@ -29,4 +53,23 @@ body {
 .no-scrollbar {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
+}
+
+/* Utility classes for consistent theming */
+.card {
+  background-color: var(--card-background);
+  border: 1px solid var(--card-border);
+  color: var(--text-color);
+}
+
+.secondary-bg {
+  background-color: var(--secondary-background);
+}
+
+.muted-text {
+  color: var(--muted-text);
+}
+
+.accent-bg {
+  background-color: var(--accent);
 }

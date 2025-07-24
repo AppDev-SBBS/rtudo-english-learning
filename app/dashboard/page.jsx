@@ -8,9 +8,9 @@ import Navbar from "../components/Navbar";
 
 export default function Dashboard() {
   return (
-    <div className="min-h-screen bg-white text-gray-800 font-sans relative">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--text-color)] font-sans relative">
       {/* Fixed Header */}
-      <div className="fixed top-0 left-0 w-full bg-white z-10 border-b border-gray-100 shadow-sm">
+      <div className="fixed top-0 left-0 w-full bg-[var(--background)] z-10 border-b border-[var(--card-border)] shadow-sm">
         <div className="px-4 py-4 max-w-3xl mx-auto">
           <Header />
         </div>

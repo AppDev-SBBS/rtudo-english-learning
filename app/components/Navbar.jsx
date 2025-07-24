@@ -22,7 +22,7 @@ export default function Navbar() {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-purple-100 py-2 px-6 rounded-t-2xl shadow-inner flex justify-around items-center z-50 max-w-3xl mx-auto">
+    <nav className="fixed bottom-0 left-0 right-0 bg-[var(--card-background)] py-2 px-6 rounded-t-2xl shadow-inner flex justify-around items-center z-50 max-w-3xl mx-auto border-t border-[var(--card-border)]">
       {navItems.map(({ href, icon, key, isCenter }) => (
         <Link href={href} key={key}>
           <div

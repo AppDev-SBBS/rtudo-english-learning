@@ -49,25 +49,41 @@ export default function StatsSection() {
   }, [user]);
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-[var(--color-primary)] font-semibold">
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center font-semibold">
       <div>
-        <p className="text-lg">{stats.availableXP}</p>
-        <p className="text-xs text-gray-500">Available XP</p>
+        <p className="text-lg" style={{ color: 'var(--color-primary)' }}>
+          {stats.availableXP}
+        </p>
+        <p className="text-xs" style={{ color: 'var(--muted-text)' }}>
+          Available XP
+        </p>
       </div>
 
       <div>
-        <p className="text-lg">{stats.activeDays}</p>
-        <p className="text-xs text-gray-500">Days Active</p>
+        <p className="text-lg" style={{ color: 'var(--color-primary)' }}>
+          {stats.activeDays}
+        </p>
+        <p className="text-xs" style={{ color: 'var(--muted-text)' }}>
+          Days Active
+        </p>
       </div>
 
       <div>
-        <p className="text-lg">{stats.completedLessons}</p>
-        <p className="text-xs text-gray-500">Lessons Completed</p>
+        <p className="text-lg" style={{ color: 'var(--color-primary)' }}>
+          {stats.completedLessons}
+        </p>
+        <p className="text-xs" style={{ color: 'var(--muted-text)' }}>
+          Lessons Completed
+        </p>
       </div>
 
       <div>
-        <p className="text-lg">{stats.level}</p>
-        <p className="text-xs text-gray-500">Level</p>
+        <p className="text-lg" style={{ color: 'var(--color-primary)' }}>
+          {stats.level}
+        </p>
+        <p className="text-xs" style={{ color: 'var(--muted-text)' }}>
+          Level
+        </p>
       </div>
     </div>
   );

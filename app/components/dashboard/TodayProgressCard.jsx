@@ -43,12 +43,10 @@ export default function TodayProgressCard() {
       const currentStreak = data.streak || 1;
       const savedMinutes = data.minutesToday || 0;
 
-      // ✅ Daily XP from xpHistory
       const xpToday = data.xpHistory?.[todayStr] || {};
       const todayDailyXP = xpToday.source?.daily || 0;
       setDailyXP(todayDailyXP);
 
-      // ✅ Streak logic
       const lastLoginDate = new Date(lastLoginDateStr);
       const diffInDays = Math.floor(
         (today - lastLoginDate) / (1000 * 60 * 60 * 24)
@@ -71,7 +69,6 @@ export default function TodayProgressCard() {
         setStreak(currentStreak);
       }
 
-      // ✅ Minutes logic
       if (lastMinutesDateStr === todayStr) {
         setMinutesToday(savedMinutes);
       } else {
@@ -88,7 +85,6 @@ export default function TodayProgressCard() {
     fetchAndSetStats();
   }, [user]);
 
-  // ✅ Track minutes
   useEffect(() => {
     if (!user) return;
 
@@ -114,65 +110,63 @@ export default function TodayProgressCard() {
   if (loading) return <Loader />;
 
   return (
-    <section className="bg-purple-50 p-4 rounded-xl shadow space-y-6">
-      <h1 className="text-xl font-bold text-gray-800 mb-2">Today's Progress</h1>
+    <section 
+      className="p-4 rounded-xl shadow space-y-6 mt-5 transition-all duration-300"
+      style={{ backgroundColor: 'var(--accent)' }}
+    >
+      <h1 
+        className="text-xl font-bold mb-2"
+        style={{ color: 'var(--text-color)' }}
+      >
+        Today's Progress
+      </h1>
 
-      {/* Row 1: Summary Cards */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-3 gap-4">
         <StatCard icon={<FaClock />} value={minutesToday} label="Minutes Today" />
         <StatCard icon={<FaStar />} value={dailyXP} label="Daily XP" />
         <StatCard icon={<FaFire />} value={streak} label="Day Streak" />
       </div>
 
-      {/* Row 2: Streak & Progress */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="bg-white p-4 rounded-xl shadow flex flex-col justify-center items-center text-center">
-          <FaFire className="text-[var(--color-primary)] text-2xl mb-2" />
-          <h3 className="text-lg font-bold text-[var(--color-primary)]">
-            {streak} Day Streak
-          </h3>
-          <p className="text-sm text-gray-600 mt-1">
-            Keep learning daily to maintain your streak
-          </p>
+      {/* Streak & Progress Bar */}
+      <div 
+        className="p-4 rounded-xl shadow w-full transition-all duration-300"
+        style={{ backgroundColor: 'var(--card-background)' }}
+      >
+        <div 
+          className="flex justify-between mb-2 text-sm font-medium"
+          style={{ color: 'var(--muted-text)' }}
+        >
+          <span>Daily Progress</span>
+          <span>{Math.max(dailyGoal - minutesToday, 0)} min left</span>
         </div>
 
-        <div className="bg-white p-4 rounded-xl shadow">
-          <div className="flex justify-between mb-1 text-sm text-gray-700 font-medium">
-            <span>Daily Progress</span>
-            <span>{Math.max(dailyGoal - minutesToday, 0)} min left</span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
-            <div
-              className="bg-[var(--color-primary)] h-2.5 rounded-full"
-              style={{ width: `${progressPercent}%` }}
-            ></div>
-          </div>
-          <p className="text-sm text-gray-500">
-            {minutesToday} / {dailyGoal} minutes
-          </p>
+        <div 
+          className="w-full rounded-full h-3 overflow-hidden"
+          style={{ backgroundColor: 'var(--secondary-background)' }}
+        >
+          <div
+            className="h-full transition-all duration-500"
+            style={{ 
+              backgroundColor: 'var(--color-primary)',
+              width: `${progressPercent}%` 
+            }}
+          ></div>
         </div>
+
+        <p 
+          className="mt-2 text-sm"
+          style={{ color: 'var(--muted-text)' }}
+        >
+          {minutesToday} / {dailyGoal} minutes
+        </p>
       </div>
 
-      {/* Row 3: Task List */}
+      {/* Task List */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <TaskItem
-          icon={<FaBookOpen />}
-          label="Complete Daily Lesson"
-          xp={25}
-          path="/lessons"
-        />
-        <TaskItem
-          icon={<FaMicrophone />}
-          label="Practice Speaking"
-          xp={15}
-          path="/practice/exam/speaking"
-        />
-        <TaskItem
-          icon={<FaRobot />}
-          label="Talk with AI"
-          xp={10}
-          path="/ai"
-        />
+        <TaskItem icon={<FaBookOpen />} label="Complete Daily Lesson" xp={25} path="/lessons" />
+        <TaskItem icon={<FaMicrophone />} label="Practice Speaking" xp={15} path="/practice/exam/speaking" />
+        <TaskItem icon={<FaRobot />} label="Talk with AI" xp={10} path="/ai" />
       </div>
     </section>
   );
@@ -180,25 +174,101 @@ export default function TodayProgressCard() {
 
 function StatCard({ icon, value, label }) {
   return (
-    <div className="bg-white p-4 rounded-xl shadow flex flex-col items-center text-center">
-      <div className="text-[var(--color-primary)] text-2xl mb-2">{icon}</div>
-      <div className="text-xl font-bold text-gray-800">{value}</div>
-      <div className="text-sm text-gray-600">{label}</div>
+    <div 
+      className="p-4 rounded-xl shadow flex flex-col items-center text-center transition-all duration-300"
+      style={{ backgroundColor: 'var(--card-background)' }}
+    >
+      <div 
+        className="text-2xl mb-2"
+        style={{ color: 'var(--color-primary)' }}
+      >
+        {icon}
+      </div>
+      <div 
+        className="text-xl font-bold"
+        style={{ color: 'var(--text-color)' }}
+      >
+        {value}
+      </div>
+      <div 
+        className="text-sm"
+        style={{ color: 'var(--muted-text)' }}
+      >
+        {label}
+      </div>
     </div>
   );
 }
 
 function TaskItem({ icon, label, xp, path }) {
   const router = useRouter();
+  const { user } = useAuth();
+
+  const handleClick = async () => {
+    if (!user) return router.push("/login");
+
+    if (label === "Talk with AI") {
+      const userRef = doc(db, "users", user.uid);
+      const todayStr = new Date().toISOString().split("T")[0];
+
+      const snap = await getDoc(userRef);
+      if (snap.exists()) {
+        const data = snap.data();
+        const availableXP = data.availableXP || 0;
+        const totalXP = data.totalXP || 0;
+        const xpHistory = data.xpHistory || {};
+        const todayXP = xpHistory[todayStr] || { source: {} };
+
+        if (!todayXP.source?.talkWithAI) {
+          const updatedXP = availableXP + xp;
+          const updatedTotalXP = totalXP + xp;
+
+          const updatedXPHistory = {
+            ...xpHistory,
+            [todayStr]: {
+              ...todayXP,
+              date: todayStr,
+              source: {
+                ...todayXP.source,
+                talkWithAI: xp,
+              },
+            },
+          };
+
+          await updateDoc(userRef, {
+            availableXP: updatedXP,
+            totalXP: updatedTotalXP,
+            xpHistory: updatedXPHistory,
+          });
+        }
+      }
+    }
+
+    router.push(path);
+  };
 
   return (
     <button
-      onClick={() => router.push(path)}
-      className="bg-white p-4 rounded-xl shadow text-center flex flex-col items-center justify-center w-full transition hover:scale-[1.02] cursor-pointer"
+      onClick={handleClick}
+      className="p-4 rounded-xl shadow text-center flex flex-col items-center justify-center w-full transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+      style={{ backgroundColor: 'var(--card-background)' }}
     >
-      <div className="text-[var(--color-primary)] text-2xl mb-2">{icon}</div>
-      <h4 className="text-gray-800 font-medium">{label}</h4>
-      <p className="text-sm text-[var(--color-primary)] font-semibold mt-1">
+      <div 
+        className="text-2xl mb-2"
+        style={{ color: 'var(--color-primary)' }}
+      >
+        {icon}
+      </div>
+      <h4 
+        className="font-medium"
+        style={{ color: 'var(--text-color)' }}
+      >
+        {label}
+      </h4>
+      <p 
+        className="text-sm font-semibold mt-1"
+        style={{ color: 'var(--color-primary)' }}
+      >
         {xp} XP
       </p>
     </button>

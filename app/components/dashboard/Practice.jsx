@@ -1,66 +1,84 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { FaMicrophone, FaHeadphones, FaPen, FaBookOpen } from "react-icons/fa";
+import { useRouter } from 'next/navigation';
+import {
+  FaMicrophone,
+  FaHeadphones,
+  FaPen,
+  FaBookOpen,
+} from 'react-icons/fa';
 
 export default function PracticeSkillsCard() {
   const router = useRouter();
 
   return (
-    <div className="bg-white rounded-xl shadow p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-bold text-gray-900">Practice Skills</h3>
-      </div>
+    <div
+      className="rounded-xl shadow p-4"
+      style={{
+        backgroundColor: 'var(--card-background)',
+        color: 'var(--text-color)',
+      }}
+    >
+      <h3 className="text-lg font-bold mb-4" style={{ color: 'var(--text-color)' }}>
+        Practice Skills
+      </h3>
 
       <div className="grid grid-cols-2 gap-4">
         <SkillCard
-          icon={<FaMicrophone size={20} />}
-          bgColor="bg-red-100"
+          icon={<FaMicrophone size={18} />}
+          iconBg="bg-red-100"
           iconColor="text-red-500"
           title="Speaking"
           subtitle="Practice pronunciation"
-          onClick={() => router.push("/practice/exam/speaking")}
+          onClick={() => router.push('/practice/exam/speaking')}
         />
         <SkillCard
-          icon={<FaHeadphones size={20} />}
-          bgColor="bg-green-100"
+          icon={<FaHeadphones size={18} />}
+          iconBg="bg-green-100"
           iconColor="text-green-500"
           title="Listening"
           subtitle="Improve comprehension"
-          onClick={() => router.push("/practice/exam/listening")}
+          onClick={() => router.push('/practice/exam/listening')}
         />
         <SkillCard
-          icon={<FaPen size={20} />}
-          bgColor="bg-blue-100"
+          icon={<FaPen size={18} />}
+          iconBg="bg-blue-100"
           iconColor="text-blue-500"
           title="Writing"
           subtitle="Practice your writing skills"
-          onClick={() => router.push("/practice/exam/writing")}
+          onClick={() => router.push('/practice/exam/writing')}
         />
         <SkillCard
-          icon={<FaBookOpen size={20} />}
-          bgColor="bg-emerald-100"
+          icon={<FaBookOpen size={18} />}
+          iconBg="bg-emerald-100"
           iconColor="text-emerald-500"
           title="Reading"
           subtitle="Enhance reading skills"
-          onClick={() => router.push("/practice/exam/reading")}
+          onClick={() => router.push('/practice/exam/reading')}
         />
       </div>
     </div>
   );
 }
 
-function SkillCard({ icon, bgColor, iconColor, title, subtitle, onClick }) {
+function SkillCard({ icon, iconBg, iconColor, title, subtitle, onClick }) {
   return (
     <div
       onClick={onClick}
-      className="cursor-pointer bg-purple-50 rounded-lg flex flex-col items-center justify-center p-4 text-center hover:shadow-md transition-shadow"
+      className="cursor-pointer rounded-xl flex flex-col items-center justify-center p-4 text-center hover:shadow transition-all duration-200"
+      style={{ backgroundColor: 'var(--accent)' }}
     >
-      <div className={`${bgColor} ${iconColor} p-3 rounded-full mb-2`}>
-        {icon}
+      <div
+        className={`p-3 rounded-full mb-2 ${iconBg}`}
+      >
+        <span className={`${iconColor}`}>{icon}</span>
       </div>
-      <h4 className="font-semibold text-gray-900">{title}</h4>
-      <p className="text-sm text-gray-500">{subtitle}</p>
+      <h4 className="font-semibold" style={{ color: 'var(--text-color)' }}>
+        {title}
+      </h4>
+      <p className="text-sm" style={{ color: 'var(--muted-text)' }}>
+        {subtitle}
+      </p>
     </div>
   );
 }

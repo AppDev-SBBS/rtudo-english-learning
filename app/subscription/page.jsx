@@ -1,6 +1,11 @@
 "use client";
 
-import { FaBookOpen, FaChalkboardTeacher, FaRobot, FaUser } from "react-icons/fa";
+import {
+  FaBookOpen,
+  FaChalkboardTeacher,
+  FaRobot,
+  FaUser,
+} from "react-icons/fa";
 import { MdOutlineHeadphones } from "react-icons/md";
 import { PiDownloadSimple, PiTargetBold } from "react-icons/pi";
 import { LuPencil } from "react-icons/lu";
@@ -9,25 +14,48 @@ import Navbar from "../components/Navbar";
 
 export default function SubscriptionPlans() {
   return (
-    <div className="relative min-h-screen pb-24">
+    <div
+      className="relative min-h-screen pb-24 transition-colors duration-300"
+      style={{
+        backgroundColor: "var(--background)",
+        color: "var(--text-color)",
+      }}
+    >
       {/* Fixed Header */}
-      <div className="fixed top-0 left-0 w-full bg-white z-10 shadow-sm border-b border-gray-100">
-        <div className="px-4 py-4 max-w-xl mx-auto">
-          <h1 className="text-2xl font-bold text-center text-[var(--color-primary-dark)] mb-1">
+      <div
+        className="fixed top-0 left-0 w-full z-10 shadow-sm border-b"
+        style={{
+          backgroundColor: "var(--card-background)",
+          borderColor: "var(--card-border)",
+        }}
+      >
+        <div className="px-4 py-4 max-w-xl mx-auto text-center">
+          <h1
+            className="text-2xl font-bold mb-1"
+            style={{ color: "var(--color-primary)" }}
+          >
             Choose Your Plan
           </h1>
-          <p className="text-sm text-gray-500 text-center">
+          <p
+            className="text-sm"
+            style={{ color: "var(--muted-text)" }}
+          >
             Select the perfect plan for your learning journey
           </p>
         </div>
       </div>
 
-      {/* Spacer to offset fixed header */}
+      {/* Spacer to offset header */}
       <div className="pt-[120px] px-4 max-w-xl mx-auto">
         {/* Basic Plan */}
-        <div className="rounded-3xl border border-gray-200 overflow-hidden mb-6 shadow-sm">
-          <div className="bg-[#2c82e6]/90 py-8 text-center text-white relative">
-            <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-[#ffffff2a] flex items-center justify-center">
+        <div
+          className="rounded-3xl border overflow-hidden mb-6 shadow-sm transition-all"
+          style={{ borderColor: "var(--card-border)" }}
+        >
+          <div className="py-8 text-center text-white relative"
+            style={{ backgroundColor: "#2c82e6" }}
+          >
+            <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-white/20 flex items-center justify-center">
               <LuPencil className="text-3xl" />
             </div>
             <h2 className="text-xl font-semibold">Basic</h2>
@@ -35,7 +63,13 @@ export default function SubscriptionPlans() {
               INR 99<span className="text-base font-medium"> /month</span>
             </p>
           </div>
-          <ul className="bg-white text-sm px-6 py-4 space-y-3 text-gray-800 font-medium">
+          <ul
+            className="text-sm px-6 py-4 space-y-3 font-medium"
+            style={{
+              backgroundColor: "var(--card-background)",
+              color: "var(--text-color)",
+            }}
+          >
             <li className="flex items-center gap-2">
               <FaBookOpen className="text-lg" /> Access to first 5 chapters
             </li>
@@ -50,16 +84,27 @@ export default function SubscriptionPlans() {
             </li>
           </ul>
           <div className="px-6 pb-6 pt-2">
-            <button className="w-full bg-[#2c82e6] text-white font-semibold py-2 rounded-xl text-sm">
+            <button
+              className="w-full py-2 rounded-xl text-sm font-semibold"
+              style={{
+                backgroundColor: "#2c82e6",
+                color: "#ffffff",
+              }}
+            >
               Select Plan
             </button>
           </div>
         </div>
 
         {/* Pro Plan */}
-        <div className="rounded-3xl border border-gray-200 overflow-hidden shadow-md relative">
-          <div className="bg-[#814096]/90 py-8 text-center text-white relative">
-            <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-[#ffffff2a] flex items-center justify-center">
+        <div
+          className="rounded-3xl border overflow-hidden shadow-md relative transition-all"
+          style={{ borderColor: "var(--card-border)" }}
+        >
+          <div className="py-8 text-center text-white relative"
+            style={{ backgroundColor: "#814096" }}
+          >
+            <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-white/20 flex items-center justify-center">
               <FaRobot className="text-3xl" />
             </div>
             <h2 className="text-xl font-semibold">Pro</h2>
@@ -71,7 +116,13 @@ export default function SubscriptionPlans() {
               Most Popular
             </span>
           </div>
-          <ul className="bg-white text-sm px-6 py-4 space-y-3 text-gray-800 font-medium">
+          <ul
+            className="text-sm px-6 py-4 space-y-3 font-medium"
+            style={{
+              backgroundColor: "var(--card-background)",
+              color: "var(--text-color)",
+            }}
+          >
             <li className="flex items-center gap-2">
               <FaBookOpen className="text-lg" /> Access to all chapters
             </li>
@@ -95,7 +146,13 @@ export default function SubscriptionPlans() {
             </li>
           </ul>
           <div className="px-6 pb-6 pt-2">
-            <button className="w-full bg-[#814096] text-white font-semibold py-2 rounded-xl text-sm">
+            <button
+              className="w-full py-2 rounded-xl text-sm font-semibold"
+              style={{
+                backgroundColor: "#814096",
+                color: "#ffffff",
+              }}
+            >
               Select Plan
             </button>
           </div>

@@ -17,13 +17,11 @@ export default function DailyGoal() {
       if (!user) return;
 
       try {
-        // Get user's daily goal
         const userDocRef = doc(db, 'users', user.uid);
         const userSnap = await getDoc(userDocRef);
         const goal = userSnap.exists() ? (userSnap.data().dailyGoal || 5) : 5;
         setDailyGoal(goal);
 
-        // Get progress/completed lessons
         const progressDocRef = doc(db, 'users', user.uid, 'progress', 'chapters');
         const progressSnap = await getDoc(progressDocRef);
 
@@ -33,7 +31,6 @@ export default function DailyGoal() {
 
           const today = dayjs().format('YYYY-MM-DD');
 
-          // ✅ Count only lessons completed today
           const todayCompletedCount = completedLessons.filter((lesson) => {
             if (typeof lesson === 'object' && lesson.completedAt) {
               return dayjs(lesson.completedAt).format('YYYY-MM-DD') === today;
@@ -55,21 +52,38 @@ export default function DailyGoal() {
   const progressPercent = Math.min(100, (completedToday / dailyGoal) * 100);
 
   return (
-    <div className="bg-gray-100 p-4 rounded-xl shadow">
-      <p className="font-bold text-[var(--color-primary)] mb-1">🎯 Daily Goal</p>
-      <p className={`text-sm ${isGoalMet ? 'text-green-600' : 'text-gray-700'}`}>
+    <div
+      className="p-4 rounded-xl shadow transition-colors duration-300"
+      style={{
+        backgroundColor: 'var(--card-background)',
+        color: 'var(--text-color)',
+      }}
+    >
+      <p className="font-bold mb-1" style={{ color: 'var(--color-primary)' }}>
+        🎯 Daily Goal
+      </p>
+      <p
+        className="text-sm"
+        style={{ color: isGoalMet ? 'green' : 'var(--text-color)' }}
+      >
         {completedToday}/{dailyGoal} lessons completed today
       </p>
 
-      <div className="h-2 mt-2 bg-gray-300 rounded-full">
+      <div
+        className="h-2 mt-2 rounded-full overflow-hidden"
+        style={{ backgroundColor: '#d1d5db' /* light gray */ }}
+      >
         <div
-          className="bg-[var(--color-primary)] h-full rounded-full"
-          style={{ width: `${progressPercent}%` }}
+          className="h-full rounded-full transition-all duration-300"
+          style={{
+            width: `${progressPercent}%`,
+            backgroundColor: 'var(--color-primary)',
+          }}
         ></div>
       </div>
 
       {isGoalMet && (
-        <p className="text-xs mt-2 text-green-600 font-semibold">
+        <p className="text-xs mt-2 font-semibold" style={{ color: 'green' }}>
           ✅ Goal Met! Great job!
         </p>
       )}

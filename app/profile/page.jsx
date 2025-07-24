@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
-import { auth } from '../firebase/firebaseConfig';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../firebase/firebaseConfig';
+import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { auth, db } from '../firebase/firebaseConfig';
+import { FaBookOpen  } from 'react-icons/fa';
 
 import Navbar from '../components/Navbar';
 import DailyGoal from '../components/profile/DailyGoal';
@@ -20,32 +20,36 @@ export default function ProfilePage() {
   const [user, setUser] = useState(null);
   const [proficiencyLevel, setProficiencyLevel] = useState('Beginner');
   const [learningLanguage, setLearningLanguage] = useState('en');
-  const [successMessage, setSuccessMessage] = useState('');
   const [dailyGoal, setDailyGoal] = useState(5);
-const [reminderTime, setReminderTime] = useState('08:00');
+  const [reminderTime, setReminderTime] = useState('08:00');
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (u) => {
       if (!u) {
         router.replace('/');
-      } else {
-        setUser(u);
+        return;
+      }
 
-        try {
-          const userRef = doc(db, 'users', u.uid);
-          const docSnap = await getDoc(userRef);
+      setUser(u);
 
-          if (docSnap.exists()) {
-  const data = docSnap.data();
-  setProficiencyLevel(data.proficiencyLevel || 'Beginner');
-  setLearningLanguage(data.learningLanguage || 'en');
-  setDailyGoal(data.dailyGoal || 5);          // ✅ Add this
-  setReminderTime(data.reminderTime || '08:00'); // ✅ Add this
-}
+      try {
+        const userRef = doc(db, 'users', u.uid);
+        const docSnap = await getDoc(userRef);
 
-        } catch (err) {
-          console.error('Error fetching user data:', err);
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+
+          console.log('Fetched user data:', data);
+
+          setProficiencyLevel(data.proficiencyLevel || 'Beginner');
+          setLearningLanguage(data.learningLanguage || 'en'); // ✅ dynamic, not hardcoded
+          setDailyGoal(data.dailyGoal || 5);
+          setReminderTime(data.reminderTime || '08:00');
+        } else {
+          console.warn('User document not found');
         }
+      } catch (err) {
+        console.error('Error fetching user data:', err);
       }
     });
 
@@ -60,9 +64,35 @@ const [reminderTime, setReminderTime] = useState('08:00');
       console.error('Sign out failed:', error);
     }
   };
+  const handleReminderChange = async (newTime) => {
+  if (!user) return;
+
+  try {
+    await updateDoc(doc(db, 'users', user.uid), { reminderTime: newTime });
+    setReminderTime(newTime);
+    console.log('Updated reminder time:', newTime);
+  } catch (err) {
+    console.error('Failed to update reminderTime:', err);
+  }
+};
+
+
+  const handleLanguageChange = async (newLang) => {
+    if (!user) return;
+
+    try {
+      const userRef = doc(db, 'users', user.uid);
+      await updateDoc(userRef, { learningLanguage: newLang });
+      setLearningLanguage(newLang); // ✅ update local state
+      console.log('Language updated in Firestore:', newLang);
+    } catch (err) {
+      console.error('Failed to update learningLanguage:', err);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-white pb-20">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--text-color)] transition-colors duration-300 pb-20">
+      {/* Profile Header */}
       <div className="bg-[var(--color-primary)] text-white px-4 py-3 rounded-b-2xl text-center max-w-3xl mx-auto">
         <div className="flex justify-center mb-1">
           {user?.photoURL ? (
@@ -78,36 +108,62 @@ const [reminderTime, setReminderTime] = useState('08:00');
           )}
         </div>
         <h2 className="text-xl font-semibold">
-          {user?.displayName?.toUpperCase || user?.email?.split('@')[0]}
+          {user?.displayName?.toUpperCase() || user?.email?.split('@')[0]}
         </h2>
         <p className="text-sm opacity-80 break-all">{user?.email}</p>
-        <p className="text-xs mt-1">🌐 Learning EN • {proficiencyLevel}</p>
-        
+        <p className="text-xs mt-1 flex items-center justify-center gap-1">
+  <FaBookOpen  className="text-white text-sm" />
+  Learning {learningLanguage.toUpperCase()} • {proficiencyLevel}
+</p>
+
       </div>
 
-      <div className="px-4 py-6 max-w-3xl mx-auto space-y-6">
-        <StatsSection />
-        <DailyGoal />
-        <Achievements />
-        <Preferences />
-        <LearningSettings 
-  learningLanguage={learningLanguage} 
-  dailyGoal={dailyGoal} 
-  reminderTime={reminderTime}
-/>
+      {/* Sections */}
+        <div className="px-4 py-6 max-w-3xl mx-auto space-y-6">
+  <StatsSection />
+  <DailyGoal />
+  <Achievements />
+  <div className="card rounded-2xl border p-4 space-y-4">
+    {/* Preferences Section */}
+    <div className="space-y-3">
+      <p className="font-semibold text-base" style={{ color: 'var(--text-color)' }}>
+        Preferences
+      </p>
+      <Preferences />
+    </div>
 
-        <AccountSettings
-          onSignOut={handleSignOut}
-          onProfileUpdate={({ displayName, photoURL }) => {
-            setUser((prev) => ({
-              ...prev,
-              displayName: displayName || prev.displayName,
-              photoURL: photoURL || prev.photoURL,
-            }));
-            setSuccessMessage('Profile updated successfully!');
-          }}
-        />
-      </div>
+    {/* Learning Settings Section */}
+    <div className="space-y-3">
+      <p className="font-semibold text-base" style={{ color: 'var(--text-color)' }}>
+        Learning
+      </p>
+      <LearningSettings
+        learningLanguage={learningLanguage}
+        dailyGoal={dailyGoal}
+        reminderTime={reminderTime}
+        onLanguageChange={handleLanguageChange}
+        onReminderChange={handleReminderChange}
+      />
+    </div>
+
+    {/* Account Settings Section */}
+    <div className="space-y-3">
+      <p className="font-semibold text-base" style={{ color: 'var(--text-color)' }}>
+        Account
+      </p>
+      <AccountSettings
+        onSignOut={handleSignOut}
+        onProfileUpdate={({ displayName, photoURL }) => {
+          setUser((prev) => ({
+            ...prev,
+            displayName: displayName || prev.displayName,
+            photoURL: photoURL || prev.photoURL,
+          }));
+        }}
+      />
+    </div>
+  </div>
+</div>
 
       <Navbar />
     </div>
