@@ -151,6 +151,14 @@ export const AuthProvider = ({ children }) => {
 
     return () => unsubscribe();
   }, []);
+  const fetchUserData = async (uid) => {
+  const docRef = doc(db, "users", uid);
+  const docSnap = await getDoc(docRef);
+  if (docSnap.exists()) {
+    return { uid, ...docSnap.data() }; // include plan in data
+  }
+  return null;
+};
 
   if (loading) return <Loader />;
 

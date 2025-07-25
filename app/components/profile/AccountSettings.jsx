@@ -112,7 +112,7 @@ export default function AccountSettings({ onSignOut, onProfileUpdate }) {
               </button>
               <button
                 onClick={onSignOut}
-                className="px-4 py-2 rounded-full bg-red-100 text-white font-semibold"
+                className="px-4 py-2 rounded-full bg-red-500 text-white font-semibold"
               >
                 Sign Out
               </button>

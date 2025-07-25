@@ -3,7 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --color-primary: #6D2C57;
+  --color-primary: #6c2e57;
   --text-color: #000000;
   
   /* Card and component colors */
@@ -18,7 +18,7 @@
 .dark {
   --background: #232323;
   --foreground: #ededed;
-  --color-primary: #9D5C87;
+  --color-primary:#6c2e57;
   --text-color: #ffffff;
   
   /* Card and component colors for dark mode */
@@ -72,4 +72,12 @@ body {
 
 .accent-bg {
   background-color: var(--accent);
+}
+/* globals.css */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebase/firebaseConfig';
-import { FaBookOpen  } from 'react-icons/fa';
+import { FaBookOpen } from 'react-icons/fa';
 
 import Navbar from '../components/Navbar';
 import DailyGoal from '../components/profile/DailyGoal';
@@ -14,10 +14,12 @@ import Preferences from '../components/profile/Preferences';
 import LearningSettings from '../components/profile/LearningSettings';
 import AccountSettings from '../components/profile/AccountSettings';
 import StatsSection from '../components/profile/StatsSection';
+import LearningProgress from '../components/profile/LearningProgress';
 
 export default function ProfilePage() {
   const router = useRouter();
   const [user, setUser] = useState(null);
+  const [userData, setUserData] = useState(null); // Store all user data
   const [proficiencyLevel, setProficiencyLevel] = useState('Beginner');
   const [learningLanguage, setLearningLanguage] = useState('en');
   const [dailyGoal, setDailyGoal] = useState(5);
@@ -31,26 +33,50 @@ export default function ProfilePage() {
       }
 
       setUser(u);
-
-      try {
-        const userRef = doc(db, 'users', u.uid);
-        const docSnap = await getDoc(userRef);
-
+      
+      // Set up real-time listener for user data
+      const userRef = doc(db, 'users', u.uid);
+      
+      const unsubscribeDoc = onSnapshot(userRef, async (docSnap) => {
         if (docSnap.exists()) {
           const data = docSnap.data();
+          console.log('Real-time user data:', data);
 
-          console.log('Fetched user data:', data);
+          // Update userData state for StatsSection
+          setUserData(data);
 
+          const todayStr = new Date().toISOString().split('T')[0];
+          
+          // ✅ Only update activeDays if this is a new calendar day
+          const lastActiveDate = data.lastActiveDate || '';
+          
+          if (lastActiveDate !== todayStr) {
+            const newActiveDays = (data.activeDays || 0) + 1;
+
+            await updateDoc(userRef, {
+              activeDays: newActiveDays,
+              lastActiveDate: todayStr,
+            });
+
+            console.log('✅ Updated activeDays to:', newActiveDays, 'for date:', todayStr);
+          } else {
+            console.log('📅 User already recorded as active today, not incrementing activeDays');
+          }
+
+          // Set local state
           setProficiencyLevel(data.proficiencyLevel || 'Beginner');
-          setLearningLanguage(data.learningLanguage || 'en'); // ✅ dynamic, not hardcoded
+          setLearningLanguage(data.learningLanguage || 'en');
           setDailyGoal(data.dailyGoal || 5);
           setReminderTime(data.reminderTime || '08:00');
         } else {
           console.warn('User document not found');
         }
-      } catch (err) {
-        console.error('Error fetching user data:', err);
-      }
+      }, (error) => {
+        console.error('Error listening to user data:', error);
+      });
+
+      // Return cleanup function
+      return () => unsubscribeDoc();
     });
 
     return () => unsubscribe();
@@ -64,18 +90,18 @@ export default function ProfilePage() {
       console.error('Sign out failed:', error);
     }
   };
+
   const handleReminderChange = async (newTime) => {
-  if (!user) return;
+    if (!user) return;
 
-  try {
-    await updateDoc(doc(db, 'users', user.uid), { reminderTime: newTime });
-    setReminderTime(newTime);
-    console.log('Updated reminder time:', newTime);
-  } catch (err) {
-    console.error('Failed to update reminderTime:', err);
-  }
-};
-
+    try {
+      await updateDoc(doc(db, 'users', user.uid), { reminderTime: newTime });
+      setReminderTime(newTime);
+      console.log('Updated reminder time:', newTime);
+    } catch (err) {
+      console.error('Failed to update reminderTime:', err);
+    }
+  };
 
   const handleLanguageChange = async (newLang) => {
     if (!user) return;
@@ -83,7 +109,7 @@ export default function ProfilePage() {
     try {
       const userRef = doc(db, 'users', user.uid);
       await updateDoc(userRef, { learningLanguage: newLang });
-      setLearningLanguage(newLang); // ✅ update local state
+      setLearningLanguage(newLang);
       console.log('Language updated in Firestore:', newLang);
     } catch (err) {
       console.error('Failed to update learningLanguage:', err);
@@ -112,58 +138,70 @@ export default function ProfilePage() {
         </h2>
         <p className="text-sm opacity-80 break-all">{user?.email}</p>
         <p className="text-xs mt-1 flex items-center justify-center gap-1">
-  <FaBookOpen  className="text-white text-sm" />
-  Learning {learningLanguage.toUpperCase()} • {proficiencyLevel}
-</p>
-
+          <FaBookOpen className="text-white text-sm" />
+          Learning {learningLanguage.toUpperCase()} • {proficiencyLevel}
+        </p>
       </div>
 
       {/* Sections */}
-        <div className="px-4 py-6 max-w-3xl mx-auto space-y-6">
-  <StatsSection />
-  <DailyGoal />
-  <Achievements />
-  <div className="card rounded-2xl border p-4 space-y-4">
-    {/* Preferences Section */}
-    <div className="space-y-3">
-      <p className="font-semibold text-base" style={{ color: 'var(--text-color)' }}>
-        Preferences
-      </p>
-      <Preferences />
-    </div>
+      <div className="px-4 py-6 max-w-3xl mx-auto space-y-6">
+        {/* Pass userData to StatsSection to ensure it shows updated values */}
+        <StatsSection userData={userData} />
+        <DailyGoal />
+        <div className="card rounded-2xl border p-4 space-y-4">
+          <p className="font-semibold text-base" style={{ color: 'var(--text-color)' }}>
+            Achievements
+          </p>
+          <Achievements />
+        </div>
+        <div className="card rounded-2xl border p-4 space-y-4">
+          <p className="font-semibold text-base" style={{ color: 'var(--text-color)' }}>
+            Learning Progress
+          </p>
+          <LearningProgress/>
+        </div>
 
-    {/* Learning Settings Section */}
-    <div className="space-y-3">
-      <p className="font-semibold text-base" style={{ color: 'var(--text-color)' }}>
-        Learning
-      </p>
-      <LearningSettings
-        learningLanguage={learningLanguage}
-        dailyGoal={dailyGoal}
-        reminderTime={reminderTime}
-        onLanguageChange={handleLanguageChange}
-        onReminderChange={handleReminderChange}
-      />
-    </div>
+        <div className="card rounded-2xl border p-4 space-y-4">
+          {/* Preferences */}
+          <div className="space-y-3">
+            <p className="font-semibold text-base" style={{ color: 'var(--text-color)' }}>
+              Preferences
+            </p>
+            <Preferences />
+          </div>
 
-    {/* Account Settings Section */}
-    <div className="space-y-3">
-      <p className="font-semibold text-base" style={{ color: 'var(--text-color)' }}>
-        Account
-      </p>
-      <AccountSettings
-        onSignOut={handleSignOut}
-        onProfileUpdate={({ displayName, photoURL }) => {
-          setUser((prev) => ({
-            ...prev,
-            displayName: displayName || prev.displayName,
-            photoURL: photoURL || prev.photoURL,
-          }));
-        }}
-      />
-    </div>
-  </div>
-</div>
+          {/* Learning */}
+          <div className="space-y-3">
+            <p className="font-semibold text-base" style={{ color: 'var(--text-color)' }}>
+              Learning
+            </p>
+            <LearningSettings
+              learningLanguage={learningLanguage}
+              dailyGoal={dailyGoal}
+              reminderTime={reminderTime}
+              onLanguageChange={handleLanguageChange}
+              onReminderChange={handleReminderChange}
+            />
+          </div>
+
+          {/* Account */}
+          <div className="space-y-3">
+            <p className="font-semibold text-base" style={{ color: 'var(--text-color)' }}>
+              Account
+            </p>
+            <AccountSettings
+              onSignOut={handleSignOut}
+              onProfileUpdate={({ displayName, photoURL }) => {
+                setUser((prev) => ({
+                  ...prev,
+                  displayName: displayName || prev.displayName,
+                  photoURL: photoURL || prev.photoURL,
+                }));
+              }}
+            />
+          </div>
+        </div>
+      </div>
 
       <Navbar />
     </div>
