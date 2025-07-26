@@ -54,7 +54,6 @@ const REMINDER_OPTIONS = [
   { value: '17:00', label: '5:00 PM', sub: 'After work' },
 ];
 
-
 export default function LearningSettings() {
   const [learningLanguage, setLearningLanguage] = useState('en');
   const [dailyGoal, setDailyGoal] = useState(5);
@@ -64,8 +63,6 @@ export default function LearningSettings() {
   const [isGoalOpen, setIsGoalOpen] = useState(false);
   const [isReminderOpen, setIsReminderOpen] = useState(false);
   const [hasShownToastToday, setHasShownToastToday] = useState(false);
-
-
 
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
@@ -82,34 +79,34 @@ export default function LearningSettings() {
     });
     return () => unsubscribe();
   }, []);
+
   useEffect(() => {
-  if (!reminderTime) return;
+    if (!reminderTime) return;
 
-  const interval = setInterval(() => {
-    const now = dayjs();
-    const currentFormatted = now.format('HH:mm');
+    const interval = setInterval(() => {
+      const now = dayjs();
+      const currentFormatted = now.format('HH:mm');
 
-    const shownToday = localStorage.getItem('reminder-toast-shown') === now.format('YYYY-MM-DD');
+      const shownToday = localStorage.getItem('reminder-toast-shown') === now.format('YYYY-MM-DD');
 
-    if (currentFormatted === reminderTime && !shownToday && !hasShownToastToday) {
-      toast('⏰ Time for your English lesson!', {
-  icon: '📚',
-  style: {
-    borderRadius: '12px',
-    background: '#fff',
-    color: '#333',
-    fontWeight: '500',
-  },
-});
+      if (currentFormatted === reminderTime && !shownToday && !hasShownToastToday) {
+        toast('⏰ Time for your English lesson!', {
+          icon: '📚',
+          style: {
+            borderRadius: '12px',
+            background: 'var(--card-background)',
+            color: 'var(--text-color)',
+            fontWeight: '500',
+          },
+        });
 
-      localStorage.setItem('reminder-toast-shown', now.format('YYYY-MM-DD'));
-      setHasShownToastToday(true);
-    }
-  }, 60 * 1000); // check every minute
+        localStorage.setItem('reminder-toast-shown', now.format('YYYY-MM-DD'));
+        setHasShownToastToday(true);
+      }
+    }, 60 * 1000);
 
-  return () => clearInterval(interval);
-}, [reminderTime, hasShownToastToday]);
-
+    return () => clearInterval(interval);
+  }, [reminderTime, hasShownToastToday]);
 
   const updateGoal = async (goal) => {
     const user = auth.currentUser;
@@ -150,37 +147,37 @@ export default function LearningSettings() {
   };
 
   return (
-    <div>
-
-      <div className="space-y-3">
-        <SettingItem
-          icon={<FaGlobe size={16} className="text-[var(--color-primary)]" />}
-          label="Learning Language"
-          value={selectedLangLabel}
-          onClick={() => setIsLangOpen(true)}
-        />
-
-        <SettingItem
-          icon={<FaBullseye size={16} className="text-[var(--color-primary)]" />}
-          label="Daily Goal"
-          value={`${dailyGoal} Lessons`}
-          onClick={() => setIsGoalOpen(true)}
-        />
-
-        <SettingItem
-  icon={<FaClock size={16} className="text-[var(--color-primary)]" />}
-  label="Study Reminder"
-  value={formatTime(reminderTime)}
-  onClick={() => setIsReminderOpen(true)}
-/>
-
-      </div>
+    <div className="space-y-3">
+      <SettingItem
+        icon={<FaGlobe size={16} className="text-[var(--color-primary)]" />}
+        label="Learning Language"
+        value={selectedLangLabel}
+        onClick={() => setIsLangOpen(true)}
+      />
+      <SettingItem
+        icon={<FaBullseye size={16} className="text-[var(--color-primary)]" />}
+        label="Daily Goal"
+        value={`${dailyGoal} Lessons`}
+        onClick={() => setIsGoalOpen(true)}
+      />
+      <SettingItem
+        icon={<FaClock size={16} className="text-[var(--color-primary)]" />}
+        label="Study Reminder"
+        value={formatTime(reminderTime)}
+        onClick={() => setIsReminderOpen(true)}
+      />
 
       {/* Language Modal */}
       <Dialog open={isLangOpen} onClose={() => setIsLangOpen(false)} className="relative z-50">
         <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <Dialog.Panel className="bg-white rounded-xl p-4 w-full max-w-sm space-y-3 max-h-[80vh] overflow-y-auto">
+          <Dialog.Panel
+            className="rounded-xl p-4 w-full max-w-sm space-y-3 max-h-[80vh] overflow-y-auto"
+            style={{
+              backgroundColor: 'var(--card-background)',
+              color: 'var(--text-color)',
+            }}
+          >
             <Dialog.Title className="text-lg font-semibold mb-2">Select Language</Dialog.Title>
             {LANGUAGES.map((lang) => (
               <button
@@ -188,7 +185,7 @@ export default function LearningSettings() {
                 className={`w-full text-left px-4 py-2 rounded-lg ${
                   lang.code === learningLanguage
                     ? 'bg-[var(--color-primary)] text-white'
-                    : 'hover:bg-gray-100'
+                    : 'hover:bg-[var(--accent)]'
                 }`}
                 onClick={() => updateLanguage(lang.code)}
               >
@@ -203,31 +200,33 @@ export default function LearningSettings() {
       <Dialog open={isGoalOpen} onClose={() => setIsGoalOpen(false)} className="relative z-50">
         <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
         <div className="fixed inset-0 flex items-center justify-center p-4">
-          <Dialog.Panel className="bg-white rounded-2xl p-4 w-full max-w-sm space-y-3 max-h-[80vh] overflow-y-auto">
-            <Dialog.Title className="text-lg font-semibold mb-3 text-[var(--text-color)]">
+          <Dialog.Panel
+            className="rounded-2xl p-4 w-full max-w-sm space-y-3 max-h-[80vh] overflow-y-auto"
+            style={{
+              backgroundColor: 'var(--card-background)',
+              color: 'var(--text-color)',
+            }}
+          >
+            <Dialog.Title className="text-lg font-semibold mb-3">
               Set Daily Goal
             </Dialog.Title>
-
             {GOAL_OPTIONS.map((goal) => {
               const isSelected = goal.value === dailyGoal;
-
               return (
                 <button
                   key={goal.value}
                   onClick={() => updateGoal(goal.value)}
                   className={`w-full text-left px-4 py-3 rounded-xl border flex justify-between items-center ${
                     isSelected
-                      ? 'bg-[var(--color-primary-light)] border-[var(--color-primary)] text-[var(--color-primary)]'
-                      : 'bg-[var(--muted-bg)] border-transparent text-[var(--text-color)] hover:bg-gray-100'
+                      ? 'bg-[var(--accent)] border-[var(--color-primary)] text-[var(--color-primary)]'
+                      : 'hover:bg-[var(--accent)] border-transparent'
                   }`}
                 >
                   <div>
                     <p className="font-semibold">{goal.label}</p>
                     <p className="text-sm opacity-80">{goal.description}</p>
                   </div>
-                  {isSelected && (
-                    <span className="text-[var(--color-primary)] text-xl font-bold">✔</span>
-                  )}
+                  {isSelected && <span className="text-xl font-bold">✔</span>}
                 </button>
               );
             })}
@@ -236,52 +235,53 @@ export default function LearningSettings() {
       </Dialog>
 
       {/* Reminder Modal */}
-<Dialog open={isReminderOpen} onClose={() => setIsReminderOpen(false)} className="relative z-50">
-  <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
-  <div className="fixed inset-0 flex items-center justify-center p-4">
-    <Dialog.Panel className="bg-white rounded-2xl p-4 w-full max-w-sm space-y-3 max-h-[80vh] overflow-y-auto">
-      <Dialog.Title className="text-lg font-semibold mb-3 text-[var(--text-color)]">
-        Study Reminder
-      </Dialog.Title>
-
-      {REMINDER_OPTIONS.map((slot) => {
-        const isSelected = slot.value === reminderTime;
-
-        return (
-          <button
-            key={slot.value}
-            onClick={async () => {
-              const user = auth.currentUser;
-              if (!user) return;
-
-              const userRef = doc(db, 'users', user.uid);
-              await updateDoc(userRef, {
-                'learningTime.time': slot.value,
-              });
-
-              setReminderTime(slot.value);
-              setIsReminderOpen(false);
+      <Dialog open={isReminderOpen} onClose={() => setIsReminderOpen(false)} className="relative z-50">
+        <div className="fixed inset-0 bg-black/40" aria-hidden="true" />
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel
+            className="rounded-2xl p-4 w-full max-w-sm space-y-3 max-h-[80vh] overflow-y-auto"
+            style={{
+              backgroundColor: 'var(--card-background)',
+              color: 'var(--text-color)',
             }}
-            className={`w-full text-left px-4 py-3 rounded-xl border flex justify-between items-center ${
-              isSelected
-                ? 'bg-[var(--color-primary-light)] border-[var(--color-primary)] text-[var(--color-primary)]'
-                : 'bg-[var(--muted-bg)] border-transparent text-[var(--text-color)] hover:bg-gray-100'
-            }`}
           >
-            <div>
-              <p className="font-semibold">{slot.label}</p>
-              <p className="text-sm opacity-80">{slot.sub}</p>
-            </div>
-            {isSelected && (
-              <span className="text-[var(--color-primary)] text-xl font-bold">✔</span>
-            )}
-          </button>
-        );
-      })}
-    </Dialog.Panel>
-  </div>
-</Dialog>
+            <Dialog.Title className="text-lg font-semibold mb-3">
+              Study Reminder
+            </Dialog.Title>
+            {REMINDER_OPTIONS.map((slot) => {
+              const isSelected = slot.value === reminderTime;
+              return (
+                <button
+                  key={slot.value}
+                  onClick={async () => {
+                    const user = auth.currentUser;
+                    if (!user) return;
 
+                    const userRef = doc(db, 'users', user.uid);
+                    await updateDoc(userRef, {
+                      'learningTime.time': slot.value,
+                    });
+
+                    setReminderTime(slot.value);
+                    setIsReminderOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-3 rounded-xl border flex justify-between items-center ${
+                    isSelected
+                      ? 'bg-[var(--accent)] border-[var(--color-primary)] text-[var(--color-primary)]'
+                      : 'hover:bg-[var(--accent)] border-transparent'
+                  }`}
+                >
+                  <div>
+                    <p className="font-semibold">{slot.label}</p>
+                    <p className="text-sm opacity-80">{slot.sub}</p>
+                  </div>
+                  {isSelected && <span className="text-xl font-bold">✔</span>}
+                </button>
+              );
+            })}
+          </Dialog.Panel>
+        </div>
+      </Dialog>
     </div>
   );
 }
@@ -290,7 +290,7 @@ function SettingItem({ icon, label, value, onClick }) {
   return (
     <div
       onClick={onClick}
-      className={`accent-bg rounded-xl p-3 flex items-center gap-4 cursor-pointer`}
+      className="accent-bg rounded-xl p-3 flex items-center gap-4 cursor-pointer"
     >
       <div
         className="min-w-[36px] h-9 w-9 flex items-center justify-center rounded-full"
@@ -298,7 +298,6 @@ function SettingItem({ icon, label, value, onClick }) {
       >
         {icon}
       </div>
-
       <div className="flex justify-between items-center w-full">
         <span className="font-medium text-base" style={{ color: 'var(--text-color)' }}>
           {label}

@@ -145,10 +145,10 @@ export default function ChapterExamPage() {
         console.log("🎉 Exam passed! Marking as completed...");
         
         // Mark exam as completed
-        await markChapterExamCompleted(user.uid, id);
-        
-        // Check if entire chapter is now complete
-        const chapterCompleted = await markChapterCompletedIfEligible(user.uid, chapterId, totalLessons);
+        await markChapterExamCompleted(user.uid, id, chapter.totalLessons); // ✅ pass totalLessons here
+
+        const chapterCompleted = await markChapterCompletedIfEligible(user.uid, id, chapter.totalLessons); // ✅ correct args
+
 
 
         if (chapterCompleted) {

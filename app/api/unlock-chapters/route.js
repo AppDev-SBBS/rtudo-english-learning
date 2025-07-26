@@ -1,7 +1,15 @@
 // /app/api/unlock-chapters/route.js
 
 import { db } from "@/app/firebase/firebaseConfig";
-import { doc, getDoc, setDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  setDoc,
+  addDoc,
+  serverTimestamp,
+  collection, // ✅ this was missing
+} from "firebase/firestore";
+
 
 export async function POST(req) {
   try {
@@ -16,31 +24,36 @@ export async function POST(req) {
       razorpay_signature,
     } = body;
 
-    const subscriptionRef = doc(db, "subscription", userId);
-    const snap = await getDoc(subscriptionRef);
+    if (!userId || !planId || !razorpay_order_id || !razorpay_payment_id) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Missing required fields" }),
+        { status: 400 }
+      );
+    }
+
+    const userSubscriptionRef = doc(db, "users", userId, "subscriptions", "details");
+    const existingSnap = await getDoc(userSubscriptionRef);
 
     const now = new Date();
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setDate(startDate.getDate() + 30); // 30 days validity
+    const startDate = now.toISOString();
+    const endDate = new Date(now);
+    endDate.setDate(endDate.getDate() + 30); // 30 days
+    const endDateISO = endDate.toISOString();
 
-    const currentPlan = snap.exists() ? snap.data() : null;
+    const currentPlan = existingSnap.exists() ? existingSnap.data() : null;
 
-    // 🚫 Prevent override if active subscription still valid
     if (
-  currentPlan &&
-  currentPlan.status === "active" &&
-  currentPlan.expiresAt.toDate() > now &&
-  currentPlan.plan === planId // 🚫 Only block if same plan is already active
-) {
-  return new Response(
-    JSON.stringify({ success: false, error: "Plan already active" }),
-    { status: 409 }
-  );
-}
+      currentPlan &&
+      currentPlan.status === "active" &&
+      new Date(currentPlan.endDate).getTime() > now.getTime() &&
+      currentPlan.plan === planId
+    ) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Plan already active" }),
+        { status: 409 }
+      );
+    }
 
-
-    // ✅ Define plan-specific features
     const features =
       planId === "pro"
         ? {
@@ -58,33 +71,42 @@ export async function POST(req) {
             aiTutor: false,
           };
 
-    // ✅ Store subscription in /subscriptions/{uid}
-    const subscriptionData = {
+    // ✅ 1. Save to global collection
+    await addDoc(collection(db, "subscriptions"), {
+      userId,
       plan: planId,
-      planType: planId,
       amount,
       currency,
       startDate,
-      endDate,
-      isActive: true,
+      endDate: endDateISO,
       status: "active",
       features,
       razorpay_order_id,
       razorpay_payment_id,
       razorpay_signature,
-      createdAt: startDate,
-      expiresAt: endDate,
-    };
+      createdAt: serverTimestamp(),
+    });
 
-    await setDoc(subscriptionRef, subscriptionData, { merge: true });
+    // ✅ 2. Save to users/{uid}/subscriptions/details
+    await setDoc(userSubscriptionRef, {
+      plan: planId,
+      amount,
+      currency,
+      startDate,
+      endDate: endDateISO,
+      isActive: true,
+      status: "active",
+      features,
+      updatedAt: serverTimestamp(),
+    });
 
-    // ✅ Also update plan in users collection
-    const userProfileRef = doc(db, "users", userId);
+    // ✅ 3. Save to users/{uid}
+    const userRef = doc(db, "users", userId);
     await setDoc(
-      userProfileRef,
+      userRef,
       {
         plan: planId,
-        planExpiresAt: endDate,
+        planExpiresAt: endDateISO,
         subscriptionStatus: "active",
       },
       { merge: true }

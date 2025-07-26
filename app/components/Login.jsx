@@ -1,12 +1,13 @@
 "use client";
 
-import { useState,useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
-import { signInUser } from "../firebase/auth";
+import { signInUser, resetPassword } from "../firebase/auth";
 import Image from "next/image";
 import { useAuth } from "../context/AuthContext";
 import Loader from "../components/Loader";
+import toast from "react-hot-toast";
 
 export default function Login() {
   const router = useRouter();
@@ -17,15 +18,16 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [formLoading, setFormLoading] = useState(false);
-useEffect(() => {
-  if (user) {
-    router.replace("/dashboard");
-  }
-}, [user, router]);
+  const [resetLoading, setResetLoading] = useState(false);
 
-if (loading) return <Loader />;
-if (user) return null;
+  useEffect(() => {
+    if (user) {
+      router.replace("/dashboard");
+    }
+  }, [user, router]);
 
+  if (loading) return <Loader />;
+  if (user) return null;
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -34,6 +36,7 @@ if (user) return null;
 
     try {
       await signInUser(email, password);
+      toast.success("Logged in successfully!");
       setTimeout(() => {
         router.replace("/dashboard");
       }, 500);
@@ -55,6 +58,32 @@ if (user) return null;
         default:
           setError("Login failed. Try again.");
       }
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError("Please enter your email first.");
+      return;
+    }
+
+    setResetLoading(true);
+    try {
+      await resetPassword(email);
+      toast.success("Password reset email sent!");
+    } catch (err) {
+      switch (err.code) {
+        case "auth/user-not-found":
+          setError("No account found with this email.");
+          break;
+        case "auth/invalid-email":
+          setError("Invalid email address.");
+          break;
+        default:
+          setError("Failed to send reset email. Try again.");
+      }
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -115,6 +144,15 @@ if (user) return null;
               )}
             </button>
           </div>
+
+          <p
+            className={`text-sm text-[var(--color-primary)] cursor-pointer mt-1 ${
+              resetLoading ? "opacity-50 cursor-not-allowed" : ""
+            }`}
+            onClick={!resetLoading ? handleForgotPassword : undefined}
+          >
+            Forgot Password?
+          </p>
 
           {error && <p className="text-red-500 text-sm">{error}</p>}
 

@@ -12,15 +12,24 @@ import {
   orderBy,
   arrayUnion,
   serverTimestamp,
+  increment,
 } from 'firebase/firestore';
 
-/* ---------------------------- 🔹 USER PROFILE ---------------------------- */
+/* ----------------------------- 🔹 Constants ----------------------------- */
+const XP_REWARDS = {
+  lesson: 25,
+  chapter: 100,
+  dailyLogin: 10,
+  welcomeBonus: 250,
+};
+
+/* ---------------------------- 🔹 Save User Data ---------------------------- */
 export const saveUserData = async (uid, data) => {
   const userDocRef = doc(db, 'users', uid);
   await setDoc(userDocRef, data, { merge: true });
 };
 
-/* ---------------------------- 🔹 CHAT SYSTEM ---------------------------- */
+/* ---------------------------- 🔹 Chat Session ---------------------------- */
 export const createChatSession = async (uid, mode = "chat") => {
   const chatRef = collection(db, `users/${uid}/chatHistory`);
   const newChatDoc = await addDoc(chatRef, {
@@ -57,8 +66,13 @@ export const fetchChatHistory = async (uid, mode = "chat") => {
   }));
 };
 
-/* ---------------------------- 🔹 SUBSCRIPTIONS ---------------------------- */
+/* ------------------------ 🔹 Save Subscription Data ------------------------ */
 export const saveSubscriptionData = async (userId, subscriptionData, features) => {
+  if (!userId || !subscriptionData) {
+    console.error("❌ Missing required subscription data");
+    return;
+  }
+
   const globalData = {
     ...subscriptionData,
     userId,
@@ -66,11 +80,7 @@ export const saveSubscriptionData = async (userId, subscriptionData, features) =
     updatedAt: serverTimestamp(),
   };
 
-  // 1️⃣ Global collection (optional analytics)
-  await addDoc(collection(db, 'subscription'), globalData);
-
-  // 2️⃣ User-specific subscription details
-  const userSubRef = doc(db, `users/${userId}/subscription`, 'details');
+  const userSubRef = doc(db, `users/${userId}/subscriptions`, 'details');
   const userSubData = {
     plan: subscriptionData.planId,
     amount: subscriptionData.amount,
@@ -79,196 +89,187 @@ export const saveSubscriptionData = async (userId, subscriptionData, features) =
     endDate: subscriptionData.endDate,
     isActive: true,
     features,
+    updatedAt: serverTimestamp(),
   };
 
-  await setDoc(userSubRef, userSubData, { merge: true });
+  try {
+    await addDoc(collection(db, 'subscriptions'), globalData);
+    await setDoc(userSubRef, userSubData, { merge: true });
+    console.log("✅ Subscription saved successfully");
+  } catch (err) {
+    console.error("❌ Error saving subscription data:", err);
+  }
 };
 
-/* ---------------------------- 🔹 PROGRESS TRACKING ---------------------------- */
-// 🔸 Use a single centralized progress document
-const getUserProgressRef = (userId) =>
-  doc(db, "users", userId, "progress", "chapters");
 
+
+/* ------------------------ 🔹 User Progress Reference ------------------------ */
+const getUserProgressRef = (userId) => doc(db, "users", userId, "progress", "chapters");
+
+/* ------------------------- ✅ Mark Lesson Completed ------------------------ */
 export const markLessonCompleted = async (userId, lessonId, chapterId, totalLessons) => {
-  console.log("🔥 markLessonCompleted called with:", { userId, lessonId, chapterId, totalLessons });
-  
-  if (!userId || !lessonId || !chapterId || !totalLessons) {
-    console.error("❌ Missing required parameters:", { userId, lessonId, chapterId, totalLessons });
-    return false;
-  }
-
-  const progressRef = doc(db, "users", userId, "progress", "chapters");
-
-  try {
-    const docSnap = await getDoc(progressRef);
-    
-    // Create a consistent lesson key format
-    const lessonKey = `${chapterId}-${lessonId}`;
-    console.log("🔑 Generated lesson key:", lessonKey);
-
-    if (!docSnap.exists()) {
-      console.log("📝 Creating new progress document");
-      await setDoc(progressRef, {
-        completedLessons: [lessonKey],
-        lastCompletedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      });
-      console.log("✅ New progress document created successfully");
-    } else {
-      const data = docSnap.data();
-      const currentCompletedLessons = data.completedLessons || [];
-      
-      console.log("📋 Current completed lessons:", currentCompletedLessons);
-      
-      if (!currentCompletedLessons.includes(lessonKey)) {
-        console.log("➕ Adding new lesson to completed list");
-        await updateDoc(progressRef, {
-          completedLessons: arrayUnion(lessonKey),
-          lastCompletedAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        });
-        console.log("✅ Lesson marked as completed successfully");
-      } else {
-        console.log("⚠️ Lesson already marked as completed");
-      }
-    }
-
-    // Verify the update
-    const updatedDoc = await getDoc(progressRef);
-    const updatedData = updatedDoc.data();
-    console.log("🔍 Updated document data:", updatedData);
-    console.log("📊 Total completed lessons:", updatedData?.completedLessons?.length || 0);
-
-    return true;
-
-  } catch (err) {
-    console.error("❌ Error marking lesson complete:", err);
-    throw err;
-  }
-};
-
-/**
- * Save chapter exam as completed.
- * @param {string} userId 
- * @param {string} chapterId 
- */
-export const markChapterExamCompleted = async (userId, chapterId) => {
-  console.log("🎯 markChapterExamCompleted called with:", { userId, chapterId });
-  
-  if (!userId || !chapterId) {
-    console.error("❌ Missing required parameters for exam completion");
-    return false;
-  }
-  
-  const progressRef = getUserProgressRef(userId);
-
-  try {
-    const snap = await getDoc(progressRef);
-    if (!snap.exists()) {
-      await setDoc(progressRef, {
-        completedExams: [chapterId],
-        updatedAt: serverTimestamp(),
-      });
-      console.log("✅ New exam progress document created");
-    } else {
-      const data = snap.data();
-      if (!data.completedExams?.includes(chapterId)) {
-        await updateDoc(progressRef, {
-          completedExams: arrayUnion(chapterId),
-          updatedAt: serverTimestamp(),
-        });
-        console.log("✅ Chapter exam marked as completed");
-      } else {
-        console.log("⚠️ Chapter exam already completed");
-      }
-    }
-    return true;
-  } catch (err) {
-    console.error("❌ Error updating completedExams:", err);
-    throw err;
-  }
-};
-
-/**
- * Mark full chapter as completed (only if all lessons + exam done).
- * @param {string} userId 
- * @param {string} chapterId 
- * @param {number} totalLessons 
- */
-export const markChapterCompletedIfEligible = async (userId, chapterId, totalLessons) => {
-  console.log("🏆 Checking chapter completion eligibility:", { userId, chapterId, totalLessons });
-  
-  if (!userId || !chapterId || !totalLessons) {
-    console.error("❌ Missing parameters for chapter completion check");
-    return false;
-  }
+  if (!userId || !lessonId || !chapterId || !totalLessons) return false;
 
   const progressRef = getUserProgressRef(userId);
+  const userRef = doc(db, "users", userId);
+  const lessonKey = `${chapterId}-${lessonId}`;
 
   try {
-    const snap = await getDoc(progressRef);
-    if (!snap.exists()) {
-      console.log("⚠️ No progress document found");
+    const progressSnap = await getDoc(progressRef);
+    const userSnap = await getDoc(userRef);
+
+    const completedLessons = progressSnap.exists()
+      ? progressSnap.data().completedLessons || []
+      : [];
+
+    const alreadyCompleted = completedLessons.some(
+      (item) => typeof item === "object" && item.key === lessonKey
+    );
+
+    if (!alreadyCompleted) {
+      // Create document if not exists
+      if (!progressSnap.exists()) {
+        await setDoc(progressRef, {
+          completedLessons: [],
+          completedLessonsCount: 0,
+          completedExams: [],
+          completedChapters: [],
+        });
+      }
+
+      // Add lesson without timestamp
+      await updateDoc(progressRef, {
+        completedLessons: arrayUnion({ key: lessonKey }),
+      });
+
+      // Add timestamp manually
+      const snap = await getDoc(progressRef);
+      const lessons = snap.data().completedLessons || [];
+
+      const updatedLessons = lessons.map((lesson) =>
+        lesson.key === lessonKey ? { ...lesson, completedAt: new Date() } : lesson
+      );
+
+      await updateDoc(progressRef, {
+        completedLessons: updatedLessons,
+        completedLessonsCount: increment(1),
+        lastCompletedAt: new Date(),
+        updatedAt: new Date(),
+      });
+
+      // Add XP for user
+      if (userSnap.exists()) {
+        await updateDoc(userRef, {
+          availableXP: increment(XP_REWARDS.lesson),
+          totalXP: increment(XP_REWARDS.lesson),
+          xpHistory: arrayUnion({
+            date: new Date(),
+            amount: XP_REWARDS.lesson,
+            reason: "Lesson Completed",
+            lessonId,
+            chapterId,
+          }),
+        });
+      }
+
+      // ✅ Check if chapter can now be marked as completed
+      await markChapterCompletedIfEligible(userId, chapterId, totalLessons);
+
+      return true;
+    } else {
+      console.log("⚠️ Lesson already marked complete");
       return false;
     }
+  } catch (err) {
+    console.error("❌ Error marking lesson complete:", err);
+    return false;
+  }
+};
 
-    const data = snap.data();
+/* -------------------------- ✅ Mark Exam Completed -------------------------- */
+export const markChapterExamCompleted = async (uid, chapterId) => {
+  try {
+    const progressRef = getUserProgressRef(uid);
+    const progressSnap = await getDoc(progressRef);
+
+    if (!progressSnap.exists()) return;
+
+    const completedExams = progressSnap.data().completedExams || [];
+
+    if (!completedExams.includes(chapterId)) {
+      await updateDoc(progressRef, {
+        completedExams: arrayUnion(chapterId),
+        updatedAt: new Date(),
+      });
+
+      console.log("✅ Exam marked complete:", chapterId);
+
+      // ✅ Also check if chapter can be marked now
+      const totalLessons = await getLessonCountForChapter(chapterId);
+      await markChapterCompletedIfEligible(uid, chapterId, totalLessons);
+    }
+  } catch (error) {
+    console.error("❌ Failed to mark exam completed:", error);
+  }
+};
+
+/* ----------------------- ✅ Mark Chapter Completed ----------------------- */
+export const markChapterCompletedIfEligible = async (uid, chapterId, totalLessons) => {
+  try {
+    const progressRef = getUserProgressRef(uid);
+    const progressSnap = await getDoc(progressRef);
+
+    if (!progressSnap.exists()) return false;
+
+    const data = progressSnap.data();
     const completedLessons = data.completedLessons || [];
     const completedExams = data.completedExams || [];
     const completedChapters = data.completedChapters || [];
 
-    // Lessons must have IDs like "chapter1-lesson1"
-    const chapterLessonsCompleted = completedLessons.filter(id => id.startsWith(`${chapterId}-`));
-    const allLessonsCompleted = chapterLessonsCompleted.length === totalLessons;
-    const examCompleted = completedExams.includes(chapterId);
+    const completedLessonCount = completedLessons.filter(
+      (item) => item.key?.startsWith(`${chapterId}-`)
+    ).length;
 
-    console.log("📊 Chapter completion status:", {
-      chapterLessonsCompleted: chapterLessonsCompleted.length,
-      totalLessons,
-      allLessonsCompleted,
-      examCompleted,
-      alreadyCompleted: completedChapters.includes(chapterId)
-    });
+    const hasCompletedAllLessons = completedLessonCount === totalLessons;
+    const hasCompletedExam = completedExams.includes(chapterId);
+    const alreadyCompleted = completedChapters.includes(chapterId);
 
-    if (allLessonsCompleted && examCompleted && !completedChapters.includes(chapterId)) {
+    console.log("🔍 Checking chapter completion:");
+    console.log({ chapterId, completedLessonCount, totalLessons, hasCompletedExam });
+
+    if (hasCompletedAllLessons && hasCompletedExam && !alreadyCompleted) {
       await updateDoc(progressRef, {
         completedChapters: arrayUnion(chapterId),
-        lastCompletedChapter: chapterId,
-        updatedAt: serverTimestamp(),
+        updatedAt: new Date(),
       });
-      console.log("🎉 Chapter marked as fully completed!");
+
+      console.log("✅ Chapter marked completed:", chapterId);
       return true;
-    } else if (!allLessonsCompleted) {
-      console.log(`⏳ Chapter not complete: ${chapterLessonsCompleted.length}/${totalLessons} lessons done`);
-    } else if (!examCompleted) {
-      console.log("⏳ Chapter not complete: exam not completed");
     }
-    
+
     return false;
-  } catch (err) {
-    console.error("❌ Error checking or updating chapter completion:", err);
-    throw err;
+  } catch (error) {
+    console.error("❌ Error in markChapterCompletedIfEligible:", error);
+    return false;
   }
 };
 
-/**
- * Get user progress data
- * @param {string} userId 
- */
+/* --------------------- 🔹 Get Total Lessons in Chapter --------------------- */
+const getLessonCountForChapter = async (chapterId) => {
+  const lessonsSnap = await getDocs(collection(db, "chapters", chapterId, "lessons"));
+  return lessonsSnap.size;
+};
+
+/* ----------------------------- 🔹 Get Progress ----------------------------- */
 export const getUserProgress = async (userId) => {
   if (!userId) return null;
-  
   try {
     const progressRef = getUserProgressRef(userId);
     const snap = await getDoc(progressRef);
-    
-    if (snap.exists()) {
-      return snap.data();
-    }
-    return {
+    return snap.exists() ? snap.data() : {
       completedLessons: [],
       completedExams: [],
-      completedChapters: []
+      completedChapters: [],
     };
   } catch (err) {
     console.error("❌ Error fetching user progress:", err);

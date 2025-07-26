@@ -4,18 +4,39 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { MdArrowBack, MdAccessTime } from "react-icons/md";
 import { FaStar, FaMicrophone } from "react-icons/fa6";
+import { getAuth } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/app/firebase/firebaseConfig";
 
 export default function InterviewPage() {
   const router = useRouter();
   const bottomRef = useRef(null);
   const [listening, setListening] = useState(false);
   const [messages, setMessages] = useState([]);
+  const [xp, setXp] = useState(null);
+  const [interimTranscript, setInterimTranscript] = useState("");
   const hasGreetedRef = useRef(false);
 
   const SpeechRecognition =
     typeof window !== "undefined" &&
     (window.SpeechRecognition || window.webkitSpeechRecognition);
   const recognition = SpeechRecognition ? new SpeechRecognition() : null;
+
+  useEffect(() => {
+    const fetchXP = async () => {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (user) {
+        const userRef = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          setXp(data.availableXP ?? 0);
+        }
+      }
+    };
+    fetchXP();
+  }, []);
 
   useEffect(() => {
     const timeout = setTimeout(() => {
@@ -40,23 +61,46 @@ export default function InterviewPage() {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, interimTranscript]);
 
   useEffect(() => {
     if (!recognition) return;
 
     recognition.lang = "en-US";
-    recognition.interimResults = false;
-    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.continuous = false; // no auto restart after finish
 
-    recognition.onresult = async (event) => {
-      const transcript = event.results[0][0].transcript;
-      setListening(false);
-      await handleVoiceInput(transcript);
+    recognition.onresult = (event) => {
+      let interim = "";
+      let final = "";
+
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          final += transcript;
+        } else {
+          interim += transcript;
+        }
+      }
+
+      setInterimTranscript(interim);
+
+      if (final) {
+        setInterimTranscript("");
+        setListening(false);
+        handleVoiceInput(final);
+      }
     };
 
-    recognition.onerror = () => setListening(false);
-    recognition.onend = () => setListening(false);
+    recognition.onerror = () => {
+      setListening(false);
+      setInterimTranscript("");
+    };
+
+    recognition.onend = () => {
+      setListening(false);
+      setInterimTranscript("");
+    };
   }, [recognition]);
 
   const handleMicClick = () => {
@@ -149,13 +193,15 @@ export default function InterviewPage() {
             Interview Mode
           </h1>
           <div className="flex items-center gap-2">
-            <div className="flex items-center px-2 py-1 rounded-full text-sm font-medium"
+            <div
+              className="flex items-center px-2 py-1 rounded-full text-sm font-medium"
               style={{
                 backgroundColor: "var(--color-primary)",
                 color: "white",
               }}
             >
-              <FaStar className="mr-1" /> 1738 XP
+              <FaStar className="mr-1" />
+              {xp !== null ? `${xp} XP` : "Loading..."}
             </div>
             <MdAccessTime size={22} style={{ color: "var(--text-color)" }} />
           </div>
@@ -164,7 +210,7 @@ export default function InterviewPage() {
 
       {/* Intro Box */}
       <div className="pt-28 px-4 w-full max-w-3xl">
-        {messages.length > 0 && (
+        {(messages.length > 0 || interimTranscript) && (
           <div
             className="w-full text-center rounded-3xl py-16 px-6 border"
             style={{
@@ -176,10 +222,7 @@ export default function InterviewPage() {
             <h2 className="text-xl font-semibold mb-3 whitespace-pre-line">
               Hello, How can I help you?
             </h2>
-            <p
-              className="text-sm"
-              style={{ color: "var(--muted-text)" }}
-            >
+            <p className="text-sm" style={{ color: "var(--muted-text)" }}>
               Tap the microphone to answer
             </p>
           </div>
@@ -199,22 +242,36 @@ export default function InterviewPage() {
                 backgroundColor:
                   msg.role === "user" ? "var(--color-primary)" : "var(--card-background)",
                 color: msg.role === "user" ? "#ffffff" : "var(--text-color)",
-                border:
-                  msg.role === "assistant" ? "1px solid var(--card-border)" : "none",
+                border: msg.role === "assistant" ? "1px solid var(--card-border)" : "none",
                 borderRadius:
                   msg.role === "user" ? "1rem 1rem 0.25rem 1rem" : "1rem 1rem 1rem 0.25rem",
               }}
             >
               {msg.text}
             </div>
-            <span
-              className="text-xs mt-1"
-              style={{ color: "var(--muted-text)" }}
-            >
+            <span className="text-xs mt-1" style={{ color: "var(--muted-text)" }}>
               {msg.timestamp}
             </span>
           </div>
         ))}
+
+        {/* Interim speech while speaking */}
+        {interimTranscript && (
+          <div className="flex flex-col items-end">
+            <div
+              className="max-w-[75%] px-4 py-3 rounded-2xl text-sm italic border shadow"
+              style={{
+                borderColor: "var(--card-border)",
+                backgroundColor: "var(--card-background)",
+                color: "var(--muted-text)",
+              }}
+            >
+              <span className="font-medium text-[var(--color-primary)]">You: </span>
+              {interimTranscript}
+            </div>
+          </div>
+        )}
+
         <div ref={bottomRef} />
       </div>
 

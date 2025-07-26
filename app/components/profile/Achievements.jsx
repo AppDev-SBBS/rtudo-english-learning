@@ -21,17 +21,36 @@ export default function Achievements() {
   useEffect(() => {
     const fetchAchievements = async () => {
       if (!user) return;
+
       try {
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        if (snap.exists()) {
-          const data = snap.data();
+        const userRef = doc(db, 'users', user.uid);
+        const progressRef = doc(db, 'users', user.uid, 'progress', 'chapters');
+
+        const [userSnap, progressSnap] = await Promise.all([
+          getDoc(userRef),
+          getDoc(progressRef),
+        ]);
+
+        if (userSnap.exists()) {
+          const data = userSnap.data();
           setStreak(data.streak || 0);
-          setCompletedLessons(data.completedLessons || 0);
           setTotalXP(data.totalXP || 0);
           setTotalSkillPoints(data.totalSkillPoints || 0);
         }
+
+        if (progressSnap.exists()) {
+          const progressData = progressSnap.data();
+          const lessons = progressData.completedLessons || [];
+
+          // Handle array of objects with .key
+          const validLessons = Array.isArray(lessons)
+            ? lessons.filter((l) => typeof l === 'object' && l.key)
+            : [];
+
+          setCompletedLessons(validLessons.length);
+        }
       } catch (err) {
-        console.error('Error fetching achievements:', err);
+        console.error('❌ Error fetching achievements:', err);
       }
     };
 
@@ -45,7 +64,7 @@ export default function Achievements() {
       icon: FaFire,
       progress: Math.min(streak, 7),
       total: 7,
-      color: '#FF4D4F', // Red
+      color: '#FF4D4F',
     },
     {
       title: 'Quick Learner',
@@ -53,7 +72,7 @@ export default function Achievements() {
       icon: FaBookOpen,
       progress: Math.min(completedLessons, 10),
       total: 10,
-      color: '#52C41A', // Green
+      color: '#52C41A',
     },
     {
       title: 'XP Master',
@@ -61,7 +80,7 @@ export default function Achievements() {
       icon: FaStar,
       progress: Math.min(totalXP, 1000),
       total: 1000,
-      color: '#FAAD14', // Yellow
+      color: '#FAAD14',
     },
     {
       title: 'Skill Champion',
@@ -69,7 +88,7 @@ export default function Achievements() {
       icon: FaMedal,
       progress: Math.min(totalSkillPoints, 100),
       total: 100,
-      color: '#9254DE', // Violet
+      color: '#9254DE',
     },
   ];
 
@@ -78,7 +97,6 @@ export default function Achievements() {
       className="p-4 rounded-xl transition-colors duration-300"
       style={{ backgroundColor: 'var(--card-background)' }}
     >
-
       <div className="flex gap-4 overflow-x-auto pb-2 hide-scrollbar">
         {achievements.map((achieve, index) => {
           const Icon = achieve.icon;
@@ -93,24 +111,21 @@ export default function Achievements() {
                 color: 'var(--text-color)',
               }}
             >
-              {/* Icon in circle */}
               <div className="flex justify-center mb-3">
                 <div
                   className="w-12 h-12 flex items-center justify-center rounded-full"
                   style={{
-                    backgroundColor: achieve.color + '33', // light tint
+                    backgroundColor: achieve.color + '33',
                   }}
                 >
                   <Icon size={24} color={achieve.color} />
                 </div>
               </div>
 
-              {/* Title */}
               <h3 className="text-center font-semibold text-base mb-1">
                 {achieve.title}
               </h3>
 
-              {/* Description */}
               <p
                 className="text-xs text-center mb-3"
                 style={{ color: 'var(--muted-text)' }}
@@ -118,7 +133,6 @@ export default function Achievements() {
                 {achieve.description}
               </p>
 
-              {/* Progress bar */}
               <div className="w-full bg-gray-300 rounded-full h-2 mb-1">
                 <div
                   className="h-2 rounded-full"

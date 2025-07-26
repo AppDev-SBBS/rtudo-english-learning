@@ -70,10 +70,10 @@ export async function POST(req) {
     };
 
     // ✅ Save in global collection
-    await addDoc(collection(db, 'subscription'), subscriptionData);
+    await addDoc(collection(db, 'subscriptions'), subscriptionData);
 
     // ✅ Save in user-specific path
-    const userSubRef = doc(db, 'users', userId, 'subscription', 'details');
+    const userSubRef = doc(db, 'users', userId, 'subscriptions', 'details');
     await setDoc(userSubRef, {
       amount,
       currency,

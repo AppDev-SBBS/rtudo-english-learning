@@ -139,7 +139,7 @@ export default function ProfilePage() {
         <p className="text-sm opacity-80 break-all">{user?.email}</p>
         <p className="text-xs mt-1 flex items-center justify-center gap-1">
           <FaBookOpen className="text-white text-sm" />
-          Learning {learningLanguage.toUpperCase()} • {proficiencyLevel}
+          Learning EN • {proficiencyLevel}
         </p>
       </div>
 

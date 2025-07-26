@@ -74,7 +74,7 @@ export default function NextLessonCard() {
             style={{ backgroundColor: 'var(--color-primary)' }}
           ></div>
         </div>
-        <p 
+        <p
           className="text-sm"
           style={{ color: 'var(--muted-text)' }}
         >

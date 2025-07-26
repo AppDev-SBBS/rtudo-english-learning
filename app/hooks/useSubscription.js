@@ -18,7 +18,7 @@ export function SubscriptionProvider({ children }) {
 
     // Real-time subscription listener
     const unsubscribe = onSnapshot(
-      doc(db, 'subscription', userId),
+      doc(db, 'subscriptions', userId),
       (doc) => {
         if (doc.exists()) {
           const subData = doc.data();

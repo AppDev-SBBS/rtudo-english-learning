@@ -10,14 +10,23 @@ import { MdOutlineHeadphones } from "react-icons/md";
 import { PiDownloadSimple, PiTargetBold } from "react-icons/pi";
 import { LuPencil } from "react-icons/lu";
 import { FiTrendingUp } from "react-icons/fi";
+import { BsCalendarDate, BsCashCoin, BsReceipt } from "react-icons/bs";
+import { FaRupeeSign } from "react-icons/fa";
 import { useAuth } from "@/app/context/AuthContext";
 import Navbar from "../components/Navbar";
 import Loader from "../components/Loader";
 import { useRouter } from "next/navigation";
-import { doc, getDoc } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  getDocs,
+  query,
+  where,
+} from "firebase/firestore";
 import { db } from "@/app/firebase/firebaseConfig";
 
-export default function SubscriptionPlans() {
+export default function SubscriptionsPlans() {
   const [loading, setLoading] = useState(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [userPlan, setUserPlan] = useState(null);
@@ -25,21 +34,43 @@ export default function SubscriptionPlans() {
 
   const { user } = useAuth();
   const router = useRouter();
-
+  const toggleDarkMode = () => {
+    document.documentElement.classList.toggle("dark");
+  };
+  
   useEffect(() => {
-    const fetchUserPlans = async () => {
-      if (!user?.uid) return;
+  if (user === undefined) return; // Still loading auth, do nothing
 
-      const subRef = doc(db, "subscription", user.uid);
-      const subSnap = await getDoc(subRef);
-      if (subSnap.exists()) {
-        const data = subSnap.data();
-        setUserPlan(data?.current || null); // Full plan object
-        setInvoices(data?.plans || []);
+  const fetchUserPlansAndInvoices = async () => {
+    if (!user?.uid) return;
+
+    try {
+      const userSubRef = doc(db, `users/${user.uid}/subscriptions`, "details");
+      const userSubSnap = await getDoc(userSubRef);
+
+      if (userSubSnap.exists()) {
+        setUserPlan(userSubSnap.data());
+      } else {
+        setUserPlan(null);
       }
-    };
-    fetchUserPlans();
-  }, [user]);
+
+      const invoiceQuery = query(
+        collection(db, "subscriptions"),
+        where("userId", "==", user.uid)
+      );
+
+      const invoiceSnap = await getDocs(invoiceQuery);
+      const plans = invoiceSnap.docs.map((doc) => doc.data());
+
+      setInvoices(plans);
+    } catch (error) {
+      console.error("❌ Error fetching subscription data:", error);
+    }
+  };
+
+  fetchUserPlansAndInvoices();
+}, [user]);
+
 
   const plans = {
     basic: {
@@ -116,18 +147,17 @@ export default function SubscriptionPlans() {
   const handlePayment = async (planId) => {
     try {
       if (!user?.uid) return alert("User not logged in");
-      if (!process.env.RAZORPAY_KEY_ID)
+      if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID)
         return alert("Razorpay Key ID not found");
 
       setLoading(planId);
-
       const isRazorpayLoaded = await initializeRazorpay();
       if (!isRazorpayLoaded) return alert("Razorpay SDK failed to load");
 
       const orderData = await createOrder(planId);
 
       const options = {
-        key: process.env.RAZORPAY_KEY_ID,
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: orderData.amount,
         currency: orderData.currency,
         name: "Learning Platform",
@@ -141,6 +171,7 @@ export default function SubscriptionPlans() {
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
               planId,
+              userId: user.uid,
             });
 
             if (verificationResult.success) {
@@ -179,12 +210,8 @@ export default function SubscriptionPlans() {
         prefill: {
           name: user.displayName || "User",
           email: user.email || "user@example.com",
-          contact: "9999999999",
         },
         theme: { color: plans[planId].color },
-        modal: {
-          ondismiss: () => console.log("Payment modal closed"),
-        },
       };
 
       const rzp = new window.Razorpay(options);
@@ -205,7 +232,7 @@ export default function SubscriptionPlans() {
     const isCurrentPlan = userPlan?.plan === plan.id;
 
     return (
-      <div className="rounded-3xl border overflow-hidden mb-6 shadow-sm transition-all hover:shadow-md opacity-100">
+      <div className="rounded-3xl card overflow-hidden mb-6 shadow-sm transition-all hover:shadow-md opacity-100">
         <div
           className="py-8 text-center text-white relative"
           style={{ backgroundColor: plan.color }}
@@ -222,8 +249,8 @@ export default function SubscriptionPlans() {
             <p className="text-sm line-through">INR {plan.originalPrice}</p>
           )}
           <p className="text-lg font-bold">
-            INR {plan.price}{" "}
-            <span className="text-base font-medium">/month</span>
+            INR {plan.price}
+            <span className="text-base font-medium"> / one-time</span>
           </p>
           {plan.popular && (
             <span className="absolute top-2 right-2 bg-white text-[#814096] text-[10px] px-2 py-[2px] font-bold rounded-full shadow-sm">
@@ -231,7 +258,7 @@ export default function SubscriptionPlans() {
             </span>
           )}
         </div>
-        <ul className="text-sm px-6 py-4 space-y-3 font-medium">
+        <ul className="text-sm px-6 py-4 space-y-3 font-medium muted-text">
           {plan.features.map((feature, i) => (
             <li key={i} className="flex items-center gap-2">
               <feature.icon className="text-lg" /> {feature.text}
@@ -257,37 +284,41 @@ export default function SubscriptionPlans() {
   };
 
   const InvoiceCard = ({ plan }) => (
-    <div className="border rounded-xl p-4 my-4 bg-gray-50 shadow-sm">
-      <h3 className="text-lg font-bold text-[var(--color-primary)] mb-2">
-        📄 Invoice
+    <div className="card rounded-xl p-4 my-4 shadow-sm">
+
+      <h3 className="text-lg font-bold text-[var(--color-primary)] mb-3 flex items-center gap-2">
+        <BsReceipt className="text-[var(--color-primary)]" /> Invoice
       </h3>
-      <p>
-        <strong>Plan:</strong> {plan.plan.toUpperCase()}
-      </p>
-      <p>
-        <strong>Amount:</strong> ₹{plan.amount}
-      </p>
-      <p>
-        <strong>Start Date:</strong>{" "}
-        {new Date(plan.startDate.seconds * 1000).toLocaleDateString()}
-      </p>
-      <p>
-        <strong>End Date:</strong>{" "}
-        {new Date(plan.endDate.seconds * 1000).toLocaleDateString()}
-      </p>
-      <p>
-        <strong>Status:</strong> {plan.status}
-      </p>
-      <p>
-        <strong>Order ID:</strong> {plan.razorpay_order_id}
-      </p>
+      <div className="text-sm space-y-1">
+        <p className="flex items-center gap-2">
+          <BsCalendarDate />
+          <strong>Payment Date:</strong>{" "}
+          {plan.createdAt?.seconds
+            ? new Date(plan.createdAt.seconds * 1000).toLocaleDateString()
+            : "N/A"}
+        </p>
+        <p className="flex items-center gap-2">
+          <FaRupeeSign />
+          <strong>Amount:</strong> ₹{plan.amount}
+        </p>
+        <p className="flex items-center gap-2">
+          <BsCashCoin />
+          <strong>Plan:</strong> {plan.plan?.toUpperCase()}
+        </p>
+        <p className="flex items-center gap-2">
+          <strong>Status:</strong> {plan.status}
+        </p>
+        <p className="flex items-center gap-2 break-all">
+          <strong>Order ID:</strong> {plan.razorpay_order_id}
+        </p>
+      </div>
     </div>
   );
 
   return (
-    <div className="relative min-h-screen pb-24">
+    <div className="relative min-h-screen pb-24" style={{ backgroundColor: "var(--background)", color: "var(--text-color)" }}>
       {isVerifying && <Loader />}
-      <div className="fixed top-0 left-0 w-full z-10 shadow-sm border-b bg-white">
+      <div className="fixed top-0 left-0 w-full z-10 shadow-sm border-b" style={{ backgroundColor: "var(--card-background)", borderColor: "var(--card-border)" }}>
         <div className="px-4 py-4 max-w-xl mx-auto text-center">
           <h1 className="text-2xl font-bold mb-1 text-[var(--color-primary)]">
             Choose Your Plan
@@ -306,17 +337,27 @@ export default function SubscriptionPlans() {
           </>
         )}
 
-        {userPlan?.plan === "basic" && (
+        {userPlan && (
           <>
-            <InvoiceCard plan={userPlan} />
-            <PlanCard plan={plans.pro} />
-          </>
-        )}
+            {invoices.map((invoice, idx) => (
+              <InvoiceCard key={idx} plan={invoice} />
+            ))}
 
-        {userPlan?.plan === "pro" && (
-          <>
-            <InvoiceCard plan={userPlan} />
-            <PlanCard plan={plans.basic} />
+            {userPlan.plan === "basic" && (
+              <>
+                <PlanCard plan={plans.pro} />
+              </>
+            )}
+
+            {userPlan.plan === "pro" && (
+              <>
+                <div className="mt-6 p-4 border rounded-xl shadow-sm" style={{ backgroundColor: "#d1fae5", color: "#065f46" }} >
+
+                  <h3 className="font-bold text-lg mb-1">🎉 You're on the Pro Plan</h3>
+                  <p>All premium features are unlocked. Keep learning!</p>
+                </div>
+              </>
+            )}
           </>
         )}
       </div>
