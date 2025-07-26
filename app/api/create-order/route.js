@@ -1,33 +1,32 @@
-// app/api/create-order/route.js
-
-import Razorpay from 'razorpay';
-
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
-
+import Razorpay from "razorpay";
+import { getRazorpayCredentials } from "@/app/lib/getRazorpayCredentials";
 export async function POST(request) {
   try {
-    const { planId, amount, currency = 'INR' } = await request.json();
+    const { planId, amount, currency = "INR" } = await request.json();
 
     if (!planId || !amount) {
-      return Response.json({ error: 'Missing required fields' }, { status: 400 });
+      return Response.json({ error: "Missing required fields" }, { status: 400 });
     }
 
     const planDetails = {
-      basic: { name: 'Basic Plan', chaptersUnlocked: 5 },
-      pro: { name: 'Pro Plan', chaptersUnlocked: -1 },
+      basic: { name: "Basic Plan", chaptersUnlocked: 5 },
+      pro: { name: "Pro Plan", chaptersUnlocked: -1 },
     };
 
     if (!planDetails[planId]) {
-      return Response.json({ error: 'Invalid plan ID' }, { status: 400 });
+      return Response.json({ error: "Invalid plan ID" }, { status: 400 });
     }
 
-    // Amount is already in paise from frontend (multiplied by 100)
-    // So we don't need to multiply again
+    // Fetch Razorpay credentials dynamically
+    const { key_id, key_secret } = await getRazorpayCredentials();
+
+    const razorpay = new Razorpay({
+      key_id,
+      key_secret,
+    });
+
     const options = {
-      amount: amount, // Already in paise
+      amount: amount, // in paise, already multiplied on frontend
       currency,
       receipt: `receipt_${planId}_${Date.now()}`,
       notes: {
@@ -45,12 +44,14 @@ export async function POST(request) {
       currency: order.currency,
       receipt: order.receipt,
     });
-
   } catch (error) {
-    console.error('Error creating Razorpay order:', error);
-    return Response.json({
-      error: 'Failed to create order',
-      details: error.message,
-    }, { status: 500 });
+    console.error("Error creating Razorpay order:", error);
+    return Response.json(
+      {
+        error: "Failed to create order",
+        details: error.message,
+      },
+      { status: 500 }
+    );
   }
 }

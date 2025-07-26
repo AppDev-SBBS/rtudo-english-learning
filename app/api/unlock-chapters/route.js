@@ -16,7 +16,7 @@ export async function POST(req) {
       razorpay_signature,
     } = body;
 
-    const subscriptionRef = doc(db, "subscriptions", userId);
+    const subscriptionRef = doc(db, "subscription", userId);
     const snap = await getDoc(subscriptionRef);
 
     const now = new Date();

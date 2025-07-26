@@ -67,7 +67,7 @@ export const saveSubscriptionData = async (userId, subscriptionData, features) =
   };
 
   // 1️⃣ Global collection (optional analytics)
-  await addDoc(collection(db, 'subscriptions'), globalData);
+  await addDoc(collection(db, 'subscription'), globalData);
 
   // 2️⃣ User-specific subscription details
   const userSubRef = doc(db, `users/${userId}/subscription`, 'details');
@@ -89,13 +89,6 @@ export const saveSubscriptionData = async (userId, subscriptionData, features) =
 const getUserProgressRef = (userId) =>
   doc(db, "users", userId, "progress", "chapters");
 
-/**
- * Save lesson as completed.
- * @param {string} userId 
- * @param {string} lessonId - Should be in format `${chapterId}-${lessonId}`
- * @param {string} chapterId
- * @param {number} totalLessons
- */
 export const markLessonCompleted = async (userId, lessonId, chapterId, totalLessons) => {
   console.log("🔥 markLessonCompleted called with:", { userId, lessonId, chapterId, totalLessons });
   

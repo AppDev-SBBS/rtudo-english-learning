@@ -30,7 +30,7 @@ export default function ChaptersPage() {
   const checkSubscription = async () => {
     if (!user?.uid) return;
     try {
-      const docRef = doc(db, "subscriptions", user.uid);
+      const docRef = doc(db, "subscription", user.uid);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const data = docSnap.data();
