@@ -49,14 +49,12 @@ export default function MotivationStep() {
 
   const handleContinue = () => {
     if (selected) {
-      localStorage.setItem("motivation", selected);
       router.push("/onboarding/step3");
     }
   };
 
-  const progress = 40;
-
   const handleBack = () => router.back();
+  const progress = 40;
 
   return (
     <div className="min-h-screen bg-white flex justify-center px-4 py-8">
@@ -83,7 +81,7 @@ export default function MotivationStep() {
         </h1>
         <p className="text-gray-500 mb-4">Choose your main motivation</p>
 
-        {/* Scrollable Motivations List */}
+        {/* Motivation list */}
         <div className="space-y-4 mb-6 overflow-y-auto max-h-[400px] pr-1 min-h-[150px]">
           {motivations.map(({ title, description, icon: Icon }) => {
             const isSelected = selected === title;

@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
+import { getOpenAIInstance } from "@/app/utils/getOpenAIInstance"; // Adjust path
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+
+const openai = await getOpenAIInstance(); // 🔑 Get key from Firestore
+
 
 export async function POST(req) {
   const { question, answer } = await req.json();

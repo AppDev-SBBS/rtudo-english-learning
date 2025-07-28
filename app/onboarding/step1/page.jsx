@@ -43,24 +43,22 @@ export default function NativeLanguage() {
 
   const handleContinue = () => {
     if (selectedLang) {
-      localStorage.setItem('nativeLanguage', selectedLang);
       router.push('/onboarding/step2');
     }
   };
 
-  const progress = 20; // Dynamic % for the progress bar
+  const progress = 20;
 
   return (
     <div className="min-h-screen bg-white flex justify-center px-4 py-8">
       <div className="w-full max-w-md flex flex-col justify-between">
         {/* Progress bar */}
         <div className="w-full h-1 bg-gray-200 rounded mb-6 overflow-hidden">
-  <div
-    className="h-full bg-[var(--color-primary)] transition-all duration-300"
-    style={{ width: `${progress}%` }}
-  />
-</div>
-
+          <div
+            className="h-full bg-[var(--color-primary)] transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
 
         {/* Title */}
         <h1 className="text-2xl font-bold text-[var(--color-primary)] mb-2">

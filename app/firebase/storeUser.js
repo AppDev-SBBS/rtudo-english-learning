@@ -2,13 +2,24 @@
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 
+/**
+ * Safely stores user data in Firestore.
+ * Automatically adds `updatedAt` timestamp.
+ */
 export const storeUserInFirestore = async (uid, data) => {
-  if (!uid || !data) return;
+  if (!uid || !data || typeof data !== 'object') return;
 
   const userDocRef = doc(db, 'users', uid);
 
-  await setDoc(userDocRef, {
-    ...data, // stores all passed fields
-    updatedAt: new Date().toISOString()
-  }, { merge: true }); // merge so old data is not lost
+  const payload = {
+    ...data,
+    updatedAt: new Date().toISOString(),
+  };
+
+  try {
+    await setDoc(userDocRef, payload, { merge: true });
+    console.log("✅ User data saved for:", uid);
+  } catch (error) {
+    console.error("❌ Error saving user data:", error);
+  }
 };

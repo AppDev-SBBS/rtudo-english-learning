@@ -1,8 +1,8 @@
-import { OpenAI } from "openai";
 import { NextResponse } from "next/server";
 import formidable from "formidable";
 import fs from "fs";
 import { Readable } from "stream";
+import { getOpenAIInstance } from "@/app/utils/getOpenAIInstance"; // path as per your setup
 
 export const config = {
   api: {
@@ -10,11 +10,6 @@ export const config = {
   },
 };
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// Parse form data for audio uploads
 async function parseFormData(req) {
   const form = formidable({ multiples: false, keepExtensions: true });
 
@@ -57,7 +52,9 @@ export async function POST(req) {
   const contentType = req.headers.get("content-type");
 
   try {
-    // 🔹 CASE 1: JSON request with transcript + topic
+    const openai = await getOpenAIInstance(); // ✅ from Firestore only
+
+    // Case 1: JSON transcript
     if (contentType.includes("application/json")) {
       const { transcript, topic, evaluationPrompt } = await req.json();
 
@@ -86,14 +83,15 @@ Return ONLY "PASS" or "FAIL"
       });
 
       const decision = result.choices[0].message.content.trim().toUpperCase();
+
       return NextResponse.json({
         result: decision === "PASS" ? "PASS" : "FAIL",
         transcript,
       });
     }
 
-    // 🔹 CASE 2: Multipart form-data request with audio
-    const { fields, files } = await parseFormData(req);
+    // Case 2: Audio form-data
+    const { files } = await parseFormData(req);
     const file = files.audio?.[0];
 
     if (!file) {
@@ -102,7 +100,6 @@ Return ONLY "PASS" or "FAIL"
 
     const audioPath = file.filepath;
 
-    // 🔹 Transcribe audio
     const transcription = await openai.audio.transcriptions.create({
       file: fs.createReadStream(audioPath),
       model: "whisper-1",
@@ -110,8 +107,7 @@ Return ONLY "PASS" or "FAIL"
 
     const text = transcription.text;
 
-    // 🔹 Evaluate transcript
-    const defaultPrompt = `
+    const prompt = `
 You are an IELTS Speaking examiner.
 
 Evaluate the following spoken response using IELTS Speaking Band Descriptors:
@@ -134,7 +130,7 @@ Respond with one word only: PASS or FAIL
 
     const result = await openai.chat.completions.create({
       model: "gpt-3.5-turbo",
-      messages: [{ role: "user", content: defaultPrompt }],
+      messages: [{ role: "user", content: prompt }],
     });
 
     const decision = result.choices[0].message.content.trim().toUpperCase();
@@ -144,7 +140,7 @@ Respond with one word only: PASS or FAIL
       transcript: text,
     });
   } catch (error) {
-    console.error("❌ Error evaluating speaking:", error);
+    console.error("❌ Error:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

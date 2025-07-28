@@ -19,6 +19,7 @@ const createUserIfNotExists = async (user) => {
   const nowISO = new Date().toISOString();
 
   if (!snap.exists()) {
+    // Gather onboarding data
     const onboarding = {
       nativeLanguage: localStorage.getItem("nativeLanguage"),
       motivation: localStorage.getItem("motivation"),
@@ -30,7 +31,7 @@ const createUserIfNotExists = async (user) => {
     const defaultUserSchema = getDefaultUserSchema({ user, onboarding });
     await setDoc(userRef, defaultUserSchema, { merge: true });
 
-    // Clean up
+    // Clean up localStorage
     localStorage.removeItem("nativeLanguage");
     localStorage.removeItem("motivation");
     localStorage.removeItem("level");
@@ -38,31 +39,45 @@ const createUserIfNotExists = async (user) => {
     localStorage.removeItem("learningTime");
   } else {
     const data = snap.data();
-    const lastLoginXpDate = data.lastLoginXpDate || null;
-    const availableXP = data.availableXP || 0;
-    const totalXP = data.totalXP || 0;
-    const xpHistory = data.xpHistory || {};
-    const todayXP = xpHistory[today] || { earned: 0, source: {} };
-    let newAvailableXP = availableXP;
-    let newTotalXP = totalXP;
+    const todayISO = nowISO;
 
-    if (lastLoginXpDate !== today) {
+    const xpData = data.xp || {
+      availableXP: 0,
+      totalXP: 0,
+      history: [],
+    };
+
+    // Check if XP already given today
+    const alreadyGivenToday = xpData.history.some(entry =>
+      entry.date?.startsWith(today)
+    );
+
+    if (!alreadyGivenToday) {
       const dailyXP = 10;
-      todayXP.source = todayXP.source || {};
-      todayXP.earned += dailyXP;
-      todayXP.source.daily = (todayXP.source.daily || 0) + dailyXP;
-      newAvailableXP += dailyXP;
-      newTotalXP += dailyXP;
+
+      const newHistoryEntry = {
+        date: todayISO,
+        amount: dailyXP,
+        reason: "Daily Login",
+      };
+
+      const updatedXP = {
+        availableXP: (xpData.availableXP || 0) + dailyXP,
+        totalXP: (xpData.totalXP || 0) + dailyXP,
+        history: [newHistoryEntry, ...xpData.history].slice(0, 100), // Keep last 100
+      };
 
       await setDoc(
         userRef,
         {
-          lastLoginDate: nowISO,
-          lastLoginXpDate: today,
-          availableXP: newAvailableXP,
-          totalXP: newTotalXP,
+          xp: updatedXP,
           updatedAt: nowISO,
-          [`xpHistory.${today}`]: todayXP,
+          "appUsage.dailyUsage": arrayUnion({
+            date: today,
+            lastUpdated: nowISO,
+            sessionsCount: 1,
+            timeSpent: 0,
+          }),
         },
         { merge: true }
       );
@@ -70,14 +85,20 @@ const createUserIfNotExists = async (user) => {
       await setDoc(
         userRef,
         {
-          lastLoginDate: nowISO,
           updatedAt: nowISO,
+          "appUsage.dailyUsage": arrayUnion({
+            date: today,
+            lastUpdated: nowISO,
+            sessionsCount: 1,
+            timeSpent: 0,
+          }),
         },
         { merge: true }
       );
     }
   }
 };
+
 
 export const registerUser = async (email, password) => {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);

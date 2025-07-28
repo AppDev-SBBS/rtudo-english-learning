@@ -32,7 +32,7 @@ const levels = [
   },
 ];
 
-export default function LevelStep() {
+export default function HowDidYouFindUs() {
   const router = useRouter();
   const [selected, setSelected] = useState(null);
 
@@ -42,7 +42,6 @@ export default function LevelStep() {
 
   const handleContinue = () => {
     if (selected) {
-      localStorage.setItem('source', selected);
       router.push('/main');
     }
   };
@@ -78,7 +77,6 @@ export default function LevelStep() {
         </p>
 
         {/* Options */}
-        {/* Scrollable Options */}
         <div className="space-y-4 mb-6 overflow-y-auto max-h-[400px] pr-1 min-h-[150px]">
           {levels.map(({ title, image, images }) => {
             const isSelected = selected === title;
@@ -103,46 +101,18 @@ export default function LevelStep() {
                   {images ? (
                     <div className="flex flex-col items-center justify-center">
                       <div className="flex gap-[1px] mb-[2px]">
-                        <Image
-                          src={images[0]}
-                          alt="fb"
-                          width={12}
-                          height={12}
-                          className="object-contain"
-                        />
-                        <Image
-                          src={images[1]}
-                          alt="insta"
-                          width={12}
-                          height={12}
-                          className="object-contain"
-                        />
+                        <Image src={images[0]} alt="fb" width={12} height={12} className="object-contain" />
+                        <Image src={images[1]} alt="insta" width={12} height={12} className="object-contain" />
                       </div>
-                      <Image
-                        src={images[2]}
-                        alt="linkedin"
-                        width={12}
-                        height={12}
-                        className="object-contain"
-                      />
+                      <Image src={images[2]} alt="linkedin" width={12} height={12} className="object-contain" />
                     </div>
                   ) : (
-                    <Image
-                      src={image}
-                      alt={title}
-                      width={24}
-                      height={24}
-                      className="object-contain"
-                    />
+                    <Image src={image} alt={title} width={24} height={24} className="object-contain" />
                   )}
                 </div>
 
                 <div>
-                  <h2
-                    className={`font-semibold text-lg ${
-                      isSelected ? "text-white" : "text-gray-800"
-                    }`}
-                  >
+                  <h2 className={`font-semibold text-lg ${isSelected ? "text-white" : "text-gray-800"}`}>
                     {title}
                   </h2>
                 </div>

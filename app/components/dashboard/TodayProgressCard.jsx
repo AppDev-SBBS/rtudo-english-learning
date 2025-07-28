@@ -22,9 +22,10 @@ export default function TodayProgressCard() {
   const [dailyXP, setDailyXP] = useState(0);
   const [streak, setStreak] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [goalMinutes, setGoalMinutes] = useState(30); // Default goal
 
-  const dailyGoal = 30;
-  const progressPercent = Math.min((minutesToday / dailyGoal) * 100, 100);
+  const progressPercent = Math.min((minutesToday / goalMinutes) * 100, 100);
+  const minutesLeft = Math.max(goalMinutes - minutesToday, 0);
 
   useEffect(() => {
     if (!user) return;
@@ -38,7 +39,7 @@ export default function TodayProgressCard() {
 
       const data = snap.data();
 
-      // Minutes
+      // Set minutesToday
       const savedMinutes = data.minutesToday || 0;
       const lastDate = data.minutesDate || "";
       if (lastDate === todayStr) {
@@ -51,11 +52,10 @@ export default function TodayProgressCard() {
         setMinutesToday(0);
       }
 
-      // XP
-      const todayXP = data.xpHistory?.[todayStr]?.source?.daily || 0;
-      setDailyXP(10); // constant daily XP
+      // Set XP
+      setDailyXP(10); // fixed daily XP
 
-      // Streak from dailyUsage
+      // Calculate streak
       const dailyUsage = data.appUsage?.dailyUsage || [];
       const dates = dailyUsage
         .map((d) => d.date)
@@ -76,54 +76,63 @@ export default function TodayProgressCard() {
       }
 
       setStreak(tempStreak);
+
+      // Get learningTime (e.g., "15 minutes", "1 hour")
+      const learningTimeRaw = data.learningTime || "30 minutes";
+      const learningTime = String(learningTimeRaw).toLowerCase();
+
+      if (learningTime.includes("hour")) {
+        setGoalMinutes(60);
+      } else {
+        const num = parseInt(learningTime.split(" ")[0]);
+        setGoalMinutes(isNaN(num) ? 30 : num);
+      }
+
       setLoading(false);
     };
 
     fetchData();
   }, [user]);
 
-  // ✅ Real session tracking: timestamp-based minute tracking
+  // Track session time every 30s
   useEffect(() => {
-  if (!user) return;
+    if (!user) return;
 
-  const userRef = doc(db, "users", user.uid);
-  const todayStr = dayjs().format("YYYY-MM-DD");
+    const userRef = doc(db, "users", user.uid);
+    const todayStr = dayjs().format("YYYY-MM-DD");
+    let lastSavedAt = Date.now();
 
-  let lastSavedAt = Date.now();
+    const saveProgress = async () => {
+      const now = Date.now();
+      const elapsedMin = Math.floor((now - lastSavedAt) / 60000);
+      if (elapsedMin <= 0) return;
 
-  const saveProgress = async () => {
-    const now = Date.now();
-    const elapsedMin = Math.floor((now - lastSavedAt) / 60000);
+      lastSavedAt = now;
 
-    if (elapsedMin <= 0) return;
+      const snap = await getDoc(userRef);
+      if (!snap.exists()) return;
 
-    lastSavedAt = now;
+      const data = snap.data();
+      const saved = data.minutesToday || 0;
+      const isToday = data.minutesDate === todayStr;
 
-    const snap = await getDoc(userRef);
-    if (!snap.exists()) return;
+      await updateDoc(userRef, {
+        minutesToday: isToday ? saved + elapsedMin : elapsedMin,
+        minutesDate: todayStr,
+      });
 
-    const data = snap.data();
-    const saved = data.minutesToday || 0;
-    const isToday = data.minutesDate === todayStr;
+      setMinutesToday((prev) => (isToday ? prev + elapsedMin : elapsedMin));
+    };
 
-    await updateDoc(userRef, {
-      minutesToday: isToday ? saved + elapsedMin : elapsedMin,
-      minutesDate: todayStr,
-    });
+    const interval = setInterval(saveProgress, 30000);
+    window.addEventListener("beforeunload", saveProgress);
 
-    setMinutesToday((prev) => (isToday ? prev + elapsedMin : elapsedMin));
-  };
-
-  const interval = setInterval(saveProgress, 30000);
-  window.addEventListener("beforeunload", saveProgress);
-
-  return () => {
-    clearInterval(interval);
-    window.removeEventListener("beforeunload", saveProgress);
-    saveProgress(); // Final save
-  };
-}, [user]);
-
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("beforeunload", saveProgress);
+      saveProgress(); // final save
+    };
+  }, [user]);
 
   if (loading) return <Loader />;
 
@@ -151,7 +160,7 @@ export default function TodayProgressCard() {
           style={{ color: "var(--muted-text)" }}
         >
           <span>Daily Progress</span>
-          <span>{Math.max(dailyGoal - minutesToday, 0)} min left</span>
+          <span>{minutesLeft} min left</span>
         </div>
 
         <div
@@ -168,7 +177,7 @@ export default function TodayProgressCard() {
         </div>
 
         <p className="mt-2 text-sm" style={{ color: "var(--muted-text)" }}>
-          {minutesToday} / {dailyGoal} minutes
+          {minutesToday} / {goalMinutes} minutes
         </p>
       </div>
 

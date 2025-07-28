@@ -2,12 +2,15 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import { getAuth } from "firebase/auth";
+import { doc, updateDoc } from "firebase/firestore";
+import { db } from "@/app/firebase/firebaseConfig"; // adjust path if different
+
 import {
   ArrowLeft,
   Sprout,
   BookText,
   MessageSquareText,
-  Brain,
   Rocket,
   Award,
 } from "lucide-react";
@@ -48,9 +51,19 @@ export default function LevelStep() {
     window.scrollTo(0, 0);
   }, []);
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     if (selected) {
-      localStorage.setItem("level", selected);
+      localStorage.setItem("proficiencyLevel", selected);
+
+      const auth = getAuth();
+      const user = auth.currentUser;
+      if (user) {
+        const userDocRef = doc(db, "users", user.uid);
+        await updateDoc(userDocRef, {
+          proficiencyLevel: selected,
+        });
+      }
+
       router.push("/onboarding/step4");
     }
   };
@@ -109,7 +122,9 @@ export default function LevelStep() {
                   <Icon
                     size={20}
                     className={`${
-                      isSelected ? "text-white" : "text-[var(--color-primary)]"
+                      isSelected
+                        ? "text-white"
+                        : "text-[var(--color-primary)]"
                     }`}
                   />
                 </div>

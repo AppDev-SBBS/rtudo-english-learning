@@ -10,7 +10,6 @@ import {
   AlarmClock,
   Hourglass,
   Watch,
-  X,
 } from 'lucide-react';
 import TimePickerModal from '@/app/components/TimePicker';
 
@@ -27,7 +26,7 @@ const getFormattedTime = (h, m, ampm) => {
 
 export default function LearningTime() {
   const router = useRouter();
-  const [selected, setSelected] = useState(null);
+  const [learningTime, setLearningTime] = useState(null);
   const [reminderTime, setReminderTime] = useState('');
   const [showPicker, setShowPicker] = useState(false);
   const [hour, setHour] = useState('03');
@@ -49,11 +48,16 @@ export default function LearningTime() {
   }, []);
 
   const handleContinue = () => {
-    if (!selected || !reminderTime) return;
+    if (!learningTime || !reminderTime) return;
+
     localStorage.setItem(
-      'learningTime',
-      JSON.stringify({ time: selected, reminder: reminderTime })
+      'learningPreferences',
+      JSON.stringify({
+        learningTime,
+        reminderTime,
+      })
     );
+
     router.push('/onboarding/step5');
   };
 
@@ -86,16 +90,16 @@ export default function LearningTime() {
           {options.map(({ label, icon: Icon }) => (
             <button
               key={label}
-              onClick={() => setSelected(label)}
+              onClick={() => setLearningTime(label)}
               className={`flex items-center gap-3 border-2 rounded-lg p-4 text-left transition-all ${
-                selected === label
+                learningTime === label
                   ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/20 font-bold text-black'
                   : 'border-gray-200 hover:border-[var(--color-primary)] text-gray-800'
               }`}
             >
               <Icon
                 size={20}
-                className={selected === label ? 'text-[var(--color-primary)]' : 'text-gray-500'}
+                className={learningTime === label ? 'text-[var(--color-primary)]' : 'text-gray-500'}
               />
               {label}
             </button>
@@ -110,7 +114,10 @@ export default function LearningTime() {
           </p>
           <p className="text-gray-500 text-sm mb-2">Set a time to remind you to practice</p>
           <div className="relative">
-            <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-primary)]" size={18} />
+            <Clock
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-primary)]"
+              size={18}
+            />
             <input
               type="text"
               readOnly
@@ -124,31 +131,28 @@ export default function LearningTime() {
         {/* Continue Button */}
         <button
           onClick={handleContinue}
-          disabled={!selected || !reminderTime}
+          disabled={!learningTime || !reminderTime}
           className={`w-full mt-2 py-3 rounded-full text-white font-bold transition ${
-            selected && reminderTime ? 'bg-[var(--color-primary)]' : 'bg-gray-300'
+            learningTime && reminderTime ? 'bg-[var(--color-primary)]' : 'bg-gray-300'
           }`}
         >
           Continue
         </button>
       </div>
 
-      {/* Custom Time Picker Modal */}
+      {/* Time Picker Modal */}
       {showPicker && (
-  <TimePickerModal
-    hour={hour}
-    minute={minute}
-    ampm={ampm}
-    setHour={setHour}
-    setMinute={setMinute}
-    setAmpm={setAmpm}
-    onClose={() => setShowPicker(false)}
-    onDone={handleTimeDone}
-  />
-)}
-
-
-
+        <TimePickerModal
+          hour={hour}
+          minute={minute}
+          ampm={ampm}
+          setHour={setHour}
+          setMinute={setMinute}
+          setAmpm={setAmpm}
+          onClose={() => setShowPicker(false)}
+          onDone={handleTimeDone}
+        />
+      )}
     </div>
   );
 }
