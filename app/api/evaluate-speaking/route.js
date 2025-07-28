@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import formidable from "formidable";
 import fs from "fs";
 import { Readable } from "stream";
-import { getOpenAIInstance } from "@/app/utils/getOpenAIInstance"; // path as per your setup
+import { getOpenAIInstance } from "@/app/lib/getOpenAI";
 
 export const config = {
   api: {

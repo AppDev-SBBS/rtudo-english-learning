@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
-import { getOpenAIInstance } from "@/app/utils/getOpenAIInstance"; // Adjust path
+import { getOpenAIInstance } from "@/app/lib/getOpenAI";
 
 
 const openai = await getOpenAIInstance(); // 🔑 Get key from Firestore
