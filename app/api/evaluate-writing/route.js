@@ -2,49 +2,47 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY, // Make sure this is set in .env.local
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function POST(req) {
-  const { text } = await req.json();
+  const { question, answer } = await req.json();
 
   try {
     const completion = await openai.chat.completions.create({
-  messages: [
-    {
-      role: "system",
-      content: `
-You are an IELTS Writing Task 2 examiner. Evaluate the following written response based on these IELTS Band Descriptors:
+      model: "gpt-3.5-turbo",
+      messages: [
+        {
+          role: "system",
+          content: `
+You are an IELTS Writing Task 2 examiner. Your job is to evaluate if the response is **relevant** and then score it.
 
-- **Task Response**: Is the question fully addressed with relevant ideas?
-- **Coherence and Cohesion**: Is the response well-organized with clear progression of ideas?
-- **Lexical Resource** (Vocabulary): Is there a sufficient range of vocabulary used appropriately?
-- **Grammatical Range and Accuracy**: Is the grammar mostly error-free and varied?
+Step 1: If the answer is **off-topic** (does not address the question), return only this: **0**
 
-Minimum: 30 words.
+Step 2: If the answer is relevant, evaluate it based on:
+- Task Response
+- Coherence and Cohesion
+- Lexical Resource
+- Grammar and Accuracy
 
-If the response shows competence in grammar and vocabulary and overall performance is IELTS Band 6.0 or above, return:
-**PASS**
+Then return a score from 1 to 100.
 
-If there are serious issues in grammar or vocabulary or overall performance is below Band 6.0, return:
-**FAIL**
+⚠️ IMPORTANT: Respond with only the number (e.g., 85, 0). Do not write explanation or anything else.
+          `.trim(),
+        },
+        {
+          role: "user",
+          content: `Question: ${question}\nAnswer: ${answer}`,
+        },
+      ],
+    });
 
-Respond with only: **PASS** or **FAIL**
-      `.trim(),
-    },
-    {
-      role: "user",
-      content: text,
-    },
-  ],
-  model: "gpt-3.5-turbo",
-});
+    const reply = completion.choices[0].message.content.trim();
+    const score = parseInt(reply.match(/\d+/)?.[0] || "0");
 
+    const result = score >= 60 ? "PASS" : "FAIL";
 
-    const resultText = completion.choices[0].message.content.trim();
-    const result = resultText.includes("PASS") ? "PASS" : "FAIL";
-
-    return NextResponse.json({ result });
+    return NextResponse.json({ result, score });
   } catch (error) {
     console.error("OpenAI writing evaluation failed:", error);
     return NextResponse.json({ error: "Evaluation failed" }, { status: 500 });

@@ -4,7 +4,6 @@ import formidable from "formidable";
 import fs from "fs";
 import { Readable } from "stream";
 
-// Required for form uploads
 export const config = {
   api: {
     bodyParser: false,
@@ -15,7 +14,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// Parse form data correctly in App Router
+// Parse form data for audio uploads
 async function parseFormData(req) {
   const form = formidable({ multiples: false, keepExtensions: true });
 
@@ -31,14 +30,13 @@ async function parseFormData(req) {
   const rawBody = Buffer.concat(chunks);
   const stream = Readable.from(rawBody);
 
-  // Convert Headers to Node-style headers object
   const headers = {};
   req.headers.forEach((value, key) => {
     headers[key.toLowerCase()] = value;
   });
 
   if (!headers["content-length"]) {
-    headers["content-length"] = rawBody.length.toString(); // Set manually
+    headers["content-length"] = rawBody.length.toString();
   }
 
   const fakeReq = Object.assign(stream, {
@@ -55,9 +53,46 @@ async function parseFormData(req) {
   });
 }
 
-
 export async function POST(req) {
+  const contentType = req.headers.get("content-type");
+
   try {
+    // 🔹 CASE 1: JSON request with transcript + topic
+    if (contentType.includes("application/json")) {
+      const { transcript, topic, evaluationPrompt } = await req.json();
+
+      const prompt = evaluationPrompt || `
+You are an IELTS Speaking examiner. Evaluate this speaking response step by step:
+
+STEP 1 - RELEVANCE CHECK (CRITICAL):
+If the response is off-topic or irrelevant, return "FAIL" immediately.
+
+STEP 2 - SPEAKING QUALITY:
+Evaluate based on:
+- Fluency and coherence
+- Lexical resource
+- Grammar and accuracy
+- Pronunciation
+
+SPEAKING TOPIC: ${topic}
+RESPONSE: ${transcript}
+
+Return ONLY "PASS" or "FAIL"
+      `.trim();
+
+      const result = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: prompt }],
+      });
+
+      const decision = result.choices[0].message.content.trim().toUpperCase();
+      return NextResponse.json({
+        result: decision === "PASS" ? "PASS" : "FAIL",
+        transcript,
+      });
+    }
+
+    // 🔹 CASE 2: Multipart form-data request with audio
     const { fields, files } = await parseFormData(req);
     const file = files.audio?.[0];
 
@@ -67,7 +102,7 @@ export async function POST(req) {
 
     const audioPath = file.filepath;
 
-    // Transcribe using Whisper
+    // 🔹 Transcribe audio
     const transcription = await openai.audio.transcriptions.create({
       file: fs.createReadStream(audioPath),
       model: "whisper-1",
@@ -75,38 +110,32 @@ export async function POST(req) {
 
     const text = transcription.text;
 
-    // Evaluate with GPT
-    const prompt = `
+    // 🔹 Evaluate transcript
+    const defaultPrompt = `
 You are an IELTS Speaking examiner.
 
 Evaluate the following spoken response using IELTS Speaking Band Descriptors:
 
-- **Fluency and Coherence**: Does the speaker speak clearly and at length without unnatural hesitation?
-- **Lexical Resource** (Vocabulary): Does the speaker use a wide range of vocabulary accurately and appropriately?
-- **Grammatical Range and Accuracy**: Are there few grammatical errors, and is the grammar varied and correct?
-- **Pronunciation**: Is the speech clear and easy to understand?
+- Fluency and Coherence
+- Lexical Resource
+- Grammar and Accuracy
+- Pronunciation
 
-Minimum word count: 50 words.
+If the speaker shows IELTS Band 6.0 or higher performance, return:
+PASS
+Else return:
+FAIL
 
 Response:
 "${text}"
 
-If the speaker shows adequate performance in all areas and is at IELTS Band 6.0 or higher, respond with:
-**PASS**
-
-If the speaker falls below IELTS Band 6.0 in grammar or vocabulary (or overall), respond with:
-**FAIL**
-
-Your answer must be one word only: **PASS** or **FAIL**
-`;
-
-
+Respond with one word only: PASS or FAIL
+    `.trim();
 
     const result = await openai.chat.completions.create({
-  model: "gpt-3.5-turbo", // Change this line
-  messages: [{ role: "user", content: prompt }],
-});
-
+      model: "gpt-3.5-turbo",
+      messages: [{ role: "user", content: defaultPrompt }],
+    });
 
     const decision = result.choices[0].message.content.trim().toUpperCase();
 
@@ -115,7 +144,7 @@ Your answer must be one word only: **PASS** or **FAIL**
       transcript: text,
     });
   } catch (error) {
-    console.error("Error evaluating speaking:", error);
+    console.error("❌ Error evaluating speaking:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
